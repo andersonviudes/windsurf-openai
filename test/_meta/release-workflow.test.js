@@ -32,31 +32,15 @@ describe('release workflow', () => {
     assert.match(rel, /files:\s*dist\/windsurf-api-\*/);
   });
 
-  it('publishes Docker + npm only after a successful Release', () => {
+  it('publishes npm only after a successful Release', () => {
     assert.match(publish, /on:\s*\n\s*workflow_run:/);
     assert.match(publish, /workflows:\s*\[Release\]/);
-    const docker = jobBlock(publish, 'docker');
     const npm = jobBlock(publish, 'npm');
-    assert.match(docker, /github\.event\.workflow_run\.conclusion == 'success'/);
     assert.match(npm, /github\.event\.workflow_run\.conclusion == 'success'/);
     assert.match(npm, /\bnpm publish\b/);
     assert.match(npm, /NODE_AUTH_TOKEN:\s*\$\{\{ secrets\.NPM_TOKEN \}\}/);
     assert.match(npm, /git rev-parse "v\$VERSION"/);
-  });
-
-  it('injects build metadata into the Docker build', () => {
-    const docker = jobBlock(publish, 'docker');
-    assert.match(docker, /git log -1 --pretty=%s/);
-    assert.match(docker, /git log -1 --pretty=%cI/);
-    for (const name of [
-      'BUILD_VERSION',
-      'BUILD_COMMIT',
-      'BUILD_COMMIT_MESSAGE',
-      'BUILD_COMMIT_DATE',
-      'BUILD_BRANCH',
-    ]) {
-      assert.match(docker, new RegExp(`\\b${name}=`), `${name} build arg is missing`);
-    }
+    assert.doesNotMatch(publish, /\n  docker:\n/);
   });
 
   it('uses the bounded release test gate in CI', () => {

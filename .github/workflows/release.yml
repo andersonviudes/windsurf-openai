@@ -1,9 +1,9 @@
 name: Release
 
 # Manually-triggered release: bump the version, tag it, build the standalone
-# binaries, and cut the GitHub Release with an auto-generated changelog. The
-# Docker image and the npm publish happen afterwards in publish.yml, which is
-# chained off this workflow completing (see .github/workflows/publish.yml).
+# binaries, and cut the GitHub Release with a grouped changelog. The npm
+# publish happens afterwards in publish.yml, which is chained off this
+# workflow completing (see .github/workflows/publish.yml).
 on:
   workflow_dispatch:
     inputs:

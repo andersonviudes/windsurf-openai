@@ -1,9 +1,11 @@
 import { readFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve, join } from 'path';
+import { appRuntimeRoot } from './runtime-root.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..', '..');
+// Repo root in a source checkout, or the directory holding the binary in a
+// `bun build --compile` build — so .env and the data dir resolve next to the
+// executable. See src/core/runtime-root.js.
+const ROOT = appRuntimeRoot();
 
 // Load .env file manually (zero dependencies)
 function loadEnv() {

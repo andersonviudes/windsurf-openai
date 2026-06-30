@@ -145,3 +145,28 @@ jobs:
           generate_release_notes: ${{ steps.notes.outputs.found != 'true' }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
+
+  binaries:
+    name: Standalone executables
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Cross-compiles all 5 targets (linux/macOS/windows) from this one runner.
+      - name: Build standalone binaries
+        run: npm run build:exe:all
+
+      # Attach to the Release the `release` job just created (needs: release).
+      - name: Upload binaries to release
+        run: gh release upload "${GITHUB_REF_NAME}" dist/windsurf-api-* --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

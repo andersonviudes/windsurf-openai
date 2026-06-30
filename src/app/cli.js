@@ -19,6 +19,7 @@ import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { isCompiled } from '../core/runtime-root.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
@@ -324,6 +325,19 @@ async function dispatch() {
   if (first.startsWith('-')) {
     command = 'start';
     rest = argv;
+  }
+
+  // The standalone (`bun build --compile`) binary can't run the LS installer:
+  // install-ls.sh isn't on disk, and the Language Server is a separate
+  // Linux/macOS-only binary that isn't bundled. Point users at out-of-band
+  // setup instead of failing obscurely on a missing script/bash.
+  if (isCompiled() && (command === 'install' || command === 'setup' || command === 'install-ls')) {
+    console.log('This is the standalone windsurf-api binary — the Language Server installer is not bundled.');
+    console.log('Set up the Language Server out-of-band, then point LS_BINARY_PATH at it:');
+    console.log('  - Linux/macOS: run install-ls.sh from the repo, or use Docker');
+    console.log('  - Windows:     use WSL2/Docker, or a Windsurf desktop language_server binary');
+    console.log('Then: windsurf-api login --token <t>   &&   windsurf-api start');
+    process.exit(0);
   }
 
   switch (command) {

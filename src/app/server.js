@@ -13,9 +13,6 @@
 
 import http from 'http';
 import { randomUUID } from 'crypto';
-import { readFileSync, existsSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import {
   validateApiKey, isAuthenticated, getAccountList, getAccountCount,
   addAccountByEmail, addAccountByToken, addAccountByKey, removeAccount,
@@ -29,10 +26,8 @@ import { handleDashboardApi, parseProxyUrl, validateProxyHost } from '../dashboa
 import { setAccountProxy } from '../core/proxy-config.js';
 import { config, log } from '../core/config.js';
 import { getVersionInfo } from '../core/version.js';
+import { readDashboardAsset } from '../core/assets.js';
 import { callerKeyFromRequest } from '../account-pool/caller-key.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(__dirname, '..', '..');
 
 const VERSION_INFO = getVersionInfo();
 
@@ -195,7 +190,7 @@ async function route(req, res) {
       const m = cookie.match(/(?:^|;\s*)dashboard_skin=([^;]+)/);
       const skin = m ? decodeURIComponent(m[1]) : '';
       const file = skin === 'sketch' ? 'index-sketch.html' : 'index.html';
-      const html = readFileSync(join(__dirname, '..', 'dashboard', file));
+      const html = readDashboardAsset(file);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Vary': 'Cookie',
@@ -227,8 +222,7 @@ async function route(req, res) {
       if (!localeFile.match(/^[a-zA-Z0-9\-]+\.json$/)) {
         return json(res, 400, { error: 'Invalid locale file' });
       }
-      const filePath = join(__dirname, '..', 'dashboard', 'i18n', localeFile);
-      const content = readFileSync(filePath);
+      const content = readDashboardAsset(`i18n/${localeFile}`);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       return res.end(content);
     } catch {
@@ -246,8 +240,7 @@ async function route(req, res) {
       if (!dataFile.match(/^[a-zA-Z0-9\-]+\.json$/)) {
         return json(res, 400, { error: 'Invalid data file' });
       }
-      const filePath = join(__dirname, '..', 'dashboard', 'data', dataFile);
-      const content = readFileSync(filePath);
+      const content = readDashboardAsset(`data/${dataFile}`);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       return res.end(content);
     } catch {

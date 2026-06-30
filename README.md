@@ -91,6 +91,7 @@ The fastest way to install and run on any machine — no `git clone` workflow re
 
 ```bash
 npm install -g .      # from a clone, or: npm link  (during development)
+bun link              # same, using Bun (from a clone); published: bun add -g windsurf-api
 ```
 
 One-shot bootstrap on a fresh machine — `install` writes `.env`, creates the data/workspace directories, and downloads the Language Server:
@@ -122,6 +123,25 @@ windsurf-api --help                               # all commands and flags
 | `--version`, `--help` | Print the version / usage. |
 
 **Cross-platform notes:** on Linux / macOS, `install` auto-downloads the matching Language Server. The Language Server is **not supported on Windows**, so there `install` still writes `.env` and creates the directories, but skips the download and prints guidance to use Docker / WSL2 — or to point `--ls-binary` at a Windsurf desktop `language_server` binary. `npm start` / `npm run dev` are unaffected and still run `src/index.js` directly.
+
+#### Standalone binaries (no Node or Bun required)
+
+Prebuilt single-file executables are attached to each [GitHub Release](https://github.com/andersonviudes/windsurf-openai/releases) for **Linux, macOS, and Windows** (`windsurf-api-<os>-<arch>`). Download the one for your platform and run it directly:
+
+```bash
+chmod +x windsurf-api-linux-x64
+./windsurf-api-linux-x64 login --token <windsurf-token>
+./windsurf-api-linux-x64 start --port 4000
+```
+
+Build them yourself (requires [Bun](https://bun.sh)):
+
+```bash
+bun run scripts/build-exe.mjs          # this platform only + smoke test  (npm run build:exe)
+bun run scripts/build-exe.mjs --all    # all 5 targets → dist/            (npm run build:exe:all)
+```
+
+The binary is a **launcher**: it bundles the proxy + dashboard, but **not** the Language Server (a separate, large, Linux/macOS-only binary). Set the LS up out-of-band — `install-ls.sh` from a clone, Docker, or WSL2 (Windows) — and point `LS_BINARY_PATH` at it before `windsurf-api start`. The `install` / `install-ls` subcommands are not available inside the binary (they print this guidance).
 
 ### One-Click Deployment
 

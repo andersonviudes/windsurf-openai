@@ -1,4 +1,5 @@
 node_modules/
+dist/
 .env
 accounts.json
 model-access.json
@@ -14,6 +15,7 @@ scripts/*
 !scripts/secret-scan.mjs
 !scripts/run-test-shard.mjs
 !scripts/cascade-survival-probe.mjs
+!scripts/build-exe.mjs
 src/get-token.js
 src/test-cascade.js
 src/runtime-config.json

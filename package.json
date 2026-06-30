@@ -18,7 +18,7 @@
     "build:exe:all": "bun run scripts/build-exe.mjs --all",
     "test": "node --import ./test/setup-env.mjs --test --test-force-exit test/*/*.test.js",
     "test:shard": "node scripts/run-test-shard.mjs",
-    "test:release": "node --import ./test/setup-env.mjs --test --test-force-exit test/conversation-cache/cache.test.js test/account-pool/dashboard-api.test.js test/_meta/dashboard-syntax.test.js test/native-bridge-docs.test.js test/language-server/proto-trace.test.js test/_meta/secret-scan.test.js test/_meta/test-shard-script.test.js test/_meta/release-workflow.test.js test/_meta/changelog-script.test.js test/core/version.test.js",
+    "test:release": "node --import ./test/setup-env.mjs --test --test-force-exit test/conversation-cache/cache.test.js test/account-pool/dashboard-api.test.js test/_meta/dashboard-syntax.test.js test/native-bridge/native-tool-routing.test.js test/language-server/proto-trace.test.js test/_meta/secret-scan.test.js test/_meta/test-shard-script.test.js test/_meta/release-workflow.test.js test/_meta/changelog-script.test.js test/core/version.test.js",
     "smoke:native-bridge": "node scripts/native-bridge-smoke.mjs",
     "smoke:special-agent": "node scripts/special-agent-smoke.mjs",
     "smoke:lsp-matrix": "node scripts/lsp-capacity-matrix.mjs",

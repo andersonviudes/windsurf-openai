@@ -1,10 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 const release = readFileSync('.github/workflows/release.yml', 'utf8');
 const publish = readFileSync('.github/workflows/publish.yml', 'utf8');
 const ciWorkflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 
 function jobBlock(workflow, name) {
   const start = workflow.indexOf(`\n  ${name}:\n`);
@@ -46,5 +47,15 @@ describe('release workflow', () => {
   it('uses the bounded release test gate in CI', () => {
     assert.match(ciWorkflow, /\bmatrix:\s*\n\s*shard:\s*\[0, 1, 2, 3\]/);
     assert.match(ciWorkflow, /\brun:\s*npm run test:shard -- \$\{\{ matrix\.shard \}\} 4\b/);
+  });
+
+  // Guards against a phantom path slipping into the gate: node --test errors
+  // out on a missing file argument, which would fail the Release at runtime.
+  it('test:release references only test files that exist', () => {
+    const files = pkg.scripts['test:release'].match(/test\/\S+\.test\.js/g) || [];
+    assert.ok(files.length > 0, 'expected test:release to list test files');
+    for (const f of files) {
+      assert.ok(existsSync(f), `test:release references a missing file: ${f}`);
+    }
   });
 });

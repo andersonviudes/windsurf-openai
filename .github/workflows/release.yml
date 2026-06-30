@@ -82,12 +82,16 @@ jobs:
       - name: Build standalone binaries
         run: npm run build:exe:all
 
+      # Grouped, conventional-commit changelog (Features / Bug Fixes / ...).
+      - name: Generate changelog
+        run: node scripts/changelog.mjs "${{ steps.bump.outputs.version }}" > RELEASE_NOTES.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.bump.outputs.tag }}
-          name: ${{ steps.bump.outputs.tag }}
+          name: Release ${{ steps.bump.outputs.tag }}
+          body_path: RELEASE_NOTES.md
           files: dist/windsurf-api-*
-          generate_release_notes: true
           draft: false
           prerelease: false

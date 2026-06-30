@@ -27,7 +27,8 @@ describe('release workflow', () => {
     assert.match(rel, /\bnpm version\b/);
     assert.match(rel, /git push origin HEAD:main --follow-tags/);
     assert.match(rel, /\bnpm run build:exe:all\b/);
-    assert.match(rel, /generate_release_notes:\s*true/);
+    assert.match(rel, /node scripts\/changelog\.mjs/);
+    assert.match(rel, /body_path:\s*RELEASE_NOTES\.md/);
     assert.match(rel, /files:\s*dist\/windsurf-api-\*/);
   });
 

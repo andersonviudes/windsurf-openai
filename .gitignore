@@ -1,5 +1,6 @@
 node_modules/
 dist/
+RELEASE_NOTES.md
 .env
 accounts.json
 model-access.json
@@ -16,6 +17,7 @@ scripts/*
 !scripts/run-test-shard.mjs
 !scripts/cascade-survival-probe.mjs
 !scripts/build-exe.mjs
+!scripts/changelog.mjs
 src/get-token.js
 src/test-cascade.js
 src/runtime-config.json

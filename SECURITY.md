@@ -1,14 +1,12 @@
-# Security Policy / 安全漏洞披露
+# Security Policy
 
-
-If you discover a security vulnerability in WindsurfAPI, **please do not open a public GitHub issue**.
+If you discover a security vulnerability in windsurf-openai, **please do not open a public GitHub issue**.
 
 Public issues are indexed by search engines and watched by forks — disclosing there exposes every deployed instance before a fix lands.
 
-Instead, report privately via one of:
+Instead, report privately via GitHub Security Advisories:
 
-- GitHub Security Advisories: <https://github.com/dwgx/WindsurfAPI/security/advisories/new> (preferred — encrypted, tracks the fix)
-- Email: `dwgx1337@gmail.com` with subject prefix `[WindsurfAPI Security]`
+<https://github.com/andersonviudes/windsurf-openai/security/advisories/new> (encrypted, and tracks the fix to completion)
 
 Please include:
 

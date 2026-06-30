@@ -10,6 +10,12 @@
   "bin": {
     "windsurf-api": "src/app/cli.js"
   },
+  "files": [
+    "src/",
+    "install-ls.sh",
+    ".env.example",
+    "config.example.json"
+  ],
   "scripts": {
     "start": "node src/app/index.js",
     "start:bun": "bun run src/app/index.js",

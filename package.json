@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node src/app/index.js",
+    "start:bun": "bun run src/app/index.js",
     "dev": "node --watch src/app/index.js",
     "test": "node --import ./test/setup-env.mjs --test --test-force-exit test/*/*.test.js",
     "test:shard": "node scripts/run-test-shard.mjs",
@@ -21,7 +22,8 @@
     "secret-scan": "node scripts/secret-scan.mjs"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "bun": ">=1.1.0"
   },
   "license": "MIT",
   "author": "andersonviudes <andersonvieiraviudes@gmail.com> (https://github.com/andersonviudes)",

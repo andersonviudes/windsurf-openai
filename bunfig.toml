@@ -1,0 +1,17 @@
+# Bun configuration.
+#
+# The application is runtime-agnostic — pure node:* builtins, zero dependencies —
+# so the server and CLI run unchanged under both Node >=20 and Bun >=1.1:
+#
+#   bun run src/app/index.js      # start the proxy   (≡ npm start)
+#   bun src/app/cli.js --help     # the windsurf-api CLI
+#
+# Canonical test runner is still Node (`npm test`, all green). Bun's node:test
+# support is incomplete — a few long-running async tests trip Bun's per-test
+# timeout and the runner then reports spurious "describe() inside test"
+# (oven-sh/bun#5090) on later files. Until that lands, run the suite under Node.
+# If you do run `bun test`, raise the timeout: `bun test --timeout 30000 test/`.
+# This preload reproduces the isolated temp DATA_DIR that `npm test` gets via
+# Node's --import flag, so a stray `bun test` never touches a real data dir.
+[test]
+preload = ["./test/setup-env.mjs"]

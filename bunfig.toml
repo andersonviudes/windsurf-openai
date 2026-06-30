@@ -1,7 +1,7 @@
 # Bun configuration.
 #
 # The application is runtime-agnostic — pure node:* builtins, zero dependencies —
-# so the server and CLI run unchanged under both Node >=20 and Bun >=1.1:
+# so the server and CLI run unchanged under both Node >=24 and Bun >=1.2:
 #
 #   bun run src/app/index.js      # start the proxy   (≡ npm start)
 #   bun src/app/cli.js --help     # the windsurf-api CLI

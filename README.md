@@ -7,7 +7,7 @@ Turn [Windsurf](https://windsurf.com) (formerly Codeium) cloud models into stand
 - `POST /v1/responses` — OpenAI Responses API
 - `GET  /v1/models` — list available models
 
-100+ models (Claude, GPT-5.x, Gemini, Grok, Qwen, Kimi, GLM, SWE, …). Pure Node.js, **zero npm dependencies**, requires Node `>=20`.
+100+ models (Claude, GPT-5.x, Gemini, Grok, Qwen, Kimi, GLM, SWE, …). Pure Node.js, **zero npm dependencies**, requires Node `>=24`.
 
 > Fork of [dwgx/WindsurfAPI](https://github.com/dwgx/WindsurfAPI), rewritten in English with a `windsurf-api` CLI. MIT licensed — see [LICENSE](LICENSE).
 

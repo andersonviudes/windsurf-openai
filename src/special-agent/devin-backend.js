@@ -14,7 +14,7 @@
  * verified source, so it is left as explicit TODO stubs that throw — never faked.
  *
  * Design notes:
- * - Zero npm deps; uses global fetch (Node >=20). `fetchImpl` is injectable so unit
+ * - Zero npm deps; uses global fetch (Node >=24). `fetchImpl` is injectable so unit
  *   tests can mock the network and CI never touches app.devin.ai.
  * - Nothing here runs at import time and no function dials the network unless called.
  * - All values treated as data; no shell, no eval.

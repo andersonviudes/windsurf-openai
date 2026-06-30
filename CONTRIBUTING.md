@@ -10,7 +10,7 @@ Thanks for your interest in contributing to WindsurfAPI!
 
 ## Development setup
 
-Requirements: Node.js `>=20`. The project has **zero npm dependencies**, so there is nothing to install.
+Requirements: Node.js `>=24`. The project has **zero npm dependencies**, so there is nothing to install.
 
 ```bash
 npm start        # run the proxy

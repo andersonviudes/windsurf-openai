@@ -33,8 +33,8 @@
     "secret-scan": "node scripts/secret-scan.mjs"
   },
   "engines": {
-    "node": ">=20.0.0",
-    "bun": ">=1.1.0"
+    "node": ">=24.0.0",
+    "bun": ">=1.2.23"
   },
   "license": "MIT",
   "author": "andersonviudes <andersonvieiraviudes@gmail.com> (https://github.com/andersonviudes)",

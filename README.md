@@ -1,0 +1,485 @@
+# Star & Follow me and I'll leave you alone
+
+<p align="center">
+  <a href="https://github.com/dwgx/WindsurfAPI/stargazers"><img src="https://img.shields.io/github/stars/dwgx/WindsurfAPI?style=for-the-badge&logo=github&color=f5c518" alt="Stars"></a>&nbsp;
+  <a href="https://github.com/dwgx"><img src="https://img.shields.io/github/followers/dwgx?label=Follow&style=for-the-badge&logo=github&color=181717" alt="Follow"></a>
+</p>
+
+> This is a fork of [dwgx/WindsurfAPI](https://github.com/dwgx/WindsurfAPI), rewritten in English and extended with a first-class `windsurf-api` command-line interface (see [CLI](#cli-windsurf-api)).
+
+# Notice
+
+> **If you haven't starred and followed**: commercial use, resale, paid deployment, hosting as a backend for public services, or reselling as a relay service is strictly prohibited.
+> **If you have starred and followed**: go ahead, I'll look the other way.
+>
+> The code itself is MIT-licensed (see [LICENSE](LICENSE)); the above is the upstream author's personal stance.
+
+---
+
+Turns [Windsurf](https://windsurf.com) (formerly Codeium)'s AI models into **two standard, compatible APIs**:
+
+- `POST /v1/chat/completions` — **OpenAI Compatible** for any OpenAI SDK.
+- `POST /v1/messages` — **Anthropic Compatible** for direct connection with Claude Code / Cline / Cursor.
+
+It also serves the OpenAI **Responses API** at `POST /v1/responses` and a model list at `GET /v1/models`.
+
+**100+ Models**: Claude 4.5/4.6/Opus 4.7 · GPT-5/5.1/5.2/5.4 series · Gemini 2.5/3.0/3.1 · Grok · Qwen · Kimi K2.x · GLM 4.7/5/5.1/5.2 · MiniMax · SWE 1.5/1.6 · Arena, etc. Zero npm dependencies, pure Node.js (requires Node `>=20`).
+
+## What is it doing?
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        A[OpenAI SDK<br>curl / Frontend]
+        B[Claude Code<br>Cline<br>Cursor]
+    end
+
+    subgraph WindsurfAPI["WindsurfAPI (Node.js)"]
+        C[HTTP Service<br>Port 3003]
+        D[Account Pool<br>Round-Robin<br>Rate Limit<br>Failover]
+    end
+
+    E["Language Server<br>(Windsurf binary)"]
+    F[Windsurf Cloud<br>server.self-serve.windsurf.com]
+
+    A -->|"/v1/chat/completions"<br>OpenAI JSON + SSE| C
+    B -->|"/v1/messages"<br>Anthropic SSE| C
+    C <-->|gRPC| E
+    E <-->|HTTPS| F
+    D -.-> C
+```
+
+**What it does**:
+1. An HTTP service (port 3003) exposing both OpenAI and Anthropic APIs simultaneously.
+2. Translates requests into Windsurf's internal gRPC protocol and sends them to the Windsurf cloud via a local Language Server.
+3. Manages an account pool with automatic round-robin, rate limiting, and failover.
+4. Strips the upstream Windsurf identity before returning, making the model identify as "I am Claude Opus 4.6, developed by Anthropic."
+
+## How to use with Claude Code / Cline / Cursor
+
+The model itself does **not** operate on files — file operations are executed locally by the IDE Agent client (Claude Code, Cline, etc.):
+
+```mermaid
+sequenceDiagram
+    actor U as You
+    participant CC as Claude Code
+    participant WA as WindsurfAPI
+    participant WC as Windsurf Cloud
+
+    U->>CC: "Help me fix a bug"
+    CC->>WA: POST /v1/messages<br>messages + tools + system
+    WA->>WC: Package into Cascade request
+    WC-->>WA: Model thinks → returns<br>tool_use(edit_file)
+    WA-->>CC: Anthropic SSE<br>content_block=tool_use
+    CC->>CC: Execute edit_file() locally<br>(Read/write local files)
+    CC->>WA: Send tool_result
+    WA->>WC: Continue conversation...
+    loop Conversation Loop
+        WC-->>WA: Response
+        WA-->>CC: SSE stream
+    end
+    CC-->>U: Final answer
+```
+
+**Key Point**: WindsurfAPI is only responsible for **passing** `tool_use` / `tool_result`. The client CLI is what actually modifies the files.
+
+## Quick Start
+
+### CLI (`windsurf-api`)
+
+The fastest way to install and run on any machine — no `git clone` workflow required once the package is on disk. Install it globally to expose a single `windsurf-api` command (works on **Linux, macOS, and Windows**):
+
+```bash
+npm install -g .      # from a clone, or: npm link  (during development)
+```
+
+One-shot bootstrap on a fresh machine — `install` writes `.env`, creates the data/workspace directories, and downloads the Language Server:
+
+```bash
+windsurf-api install                              # generate .env + dirs + download LS
+windsurf-api install --port 4000 --api-key KEY    # write those values straight into .env
+windsurf-api install --skip-ls                    # scaffold only, skip the LS download
+```
+
+Then add an account and start the server:
+
+```bash
+windsurf-api login --token <windsurf-token>       # or --api-key <k> / --email <e> --password <p>
+windsurf-api start --port 4000                    # flags override .env / env vars
+windsurf-api accounts                             # list the account pool
+windsurf-api status                               # pool summary
+windsurf-api --help                               # all commands and flags
+```
+
+| Command | What it does |
+|---|---|
+| `start` *(default)* | Boot the proxy. Flags `--port/-p`, `--host`, `--data-dir`, `--api-key`, `--ls-binary`, `--log-level` override the matching environment variable; anything not passed falls back to `.env` / env. |
+| `install` / `setup` | Generate `.env` from CLI args, create the directories, and download the LS binary. `--skip-ls` skips the download; `--force` overwrites an existing `.env`. Accepts `--port --host --api-key --data-dir --default-model --max-tokens --log-level --ls-binary --ls-port --dashboard-password`. |
+| `install-ls [args]` | (Re)download only the Language Server binary. Extra args are forwarded to `install-ls.sh` (e.g. `--url <u>`). |
+| `login` | Add an account to the pool: `--token`, `--api-key`, or `--email` + `--password` (plus optional `--label`). |
+| `accounts [--json]` | List the account pool. |
+| `status [--json]` | Account-pool summary. |
+| `--version`, `--help` | Print the version / usage. |
+
+**Cross-platform notes:** on Linux / macOS, `install` auto-downloads the matching Language Server. The Language Server is **not supported on Windows**, so there `install` still writes `.env` and creates the directories, but skips the download and prints guidance to use Docker / WSL2 — or to point `--ls-binary` at a Windsurf desktop `language_server` binary. `npm start` / `npm run dev` are unaffected and still run `src/index.js` directly.
+
+### One-Click Deployment
+
+```bash
+git clone https://github.com/andersonviudes/windsurf-openai.git
+cd windsurf-openai
+bash setup.sh          # Create directories · Set permissions · Generate .env
+node src/index.js
+```
+
+Dashboard: `http://YOUR_IP:3003/dashboard`
+
+### Docker Deployment
+
+```bash
+cp .env.example .env
+
+# Optional: place language_server_linux_x64 under .docker-data/opt/windsurf/
+# If omitted, the container will auto-download it into /opt/windsurf/ on first boot.
+
+docker compose up -d --build
+docker compose logs -f
+```
+
+Default mounts:
+
+- `./.docker-data/data`: persisted `accounts.json`, `proxy.json`, `stats.json`, `runtime-config.json`, `model-access.json`, and `logs/`
+- `./.docker-data/opt/windsurf`: Language Server binary and its data directory
+- `./.docker-data/tmp/windsurf-workspace`: temporary workspace
+
+If you want a different persistence location, set `DATA_DIR` in `.env`. The Docker setup defaults it to `/data`.
+
+### One-Click Update
+
+To pull the latest fixes after deployment, just run one command:
+
+```bash
+cd ~/windsurf-openai && bash update.sh
+```
+
+`update.sh` does: `git pull` → updates the LS binary via `install-ls.sh` → stops PM2 → kills any residual process on port 3003 → restarts → health check.
+
+### Manual Installation
+
+```bash
+git clone https://github.com/andersonviudes/windsurf-openai.git
+cd windsurf-openai
+
+# Language Server binary — auto-detects Linux/macOS, one-click download + chmod
+bash install-ls.sh
+
+# Download chain: WindsurfAPI release → public LS mirror
+#   https://github.com/dwgx/windsurf-ls-release/releases/latest/download
+# → Exafunction/codeium fallback. For a private mirror or rollback, set:
+#   WINDSURFAPI_LS_RELEASE=https://github.com/<owner>/<repo>/releases/latest/download bash install-ls.sh
+
+# Default install paths:
+#   Linux x64:           /opt/windsurf/language_server_linux_x64
+#   Linux arm64:         /opt/windsurf/language_server_linux_arm
+#   macOS Apple Silicon: $HOME/.windsurf/language_server_macos_arm
+#   macOS Intel:         $HOME/.windsurf/language_server_macos_x64
+
+# Or use a local binary you already have:
+#   bash install-ls.sh /path/to/language_server_linux_x64
+# Or specify a custom URL:
+#   bash install-ls.sh --url https://example.com/language_server_linux_x64
+
+# ⚠️ Can't see opus-4.7 / other new models?
+# The default download chain now uses the dwgx/windsurf-ls-release public mirror.
+# If the mirror does not cover your platform yet, copy the LS binary out of
+# the Windsurf desktop app bundle:
+#
+#   macOS:   "$HOME/Library/Application Support/Windsurf/resources/app/extensions/windsurf/bin/language_server_macos_arm"
+#   Linux:   "$HOME/.windsurf/bin/language_server_linux_x64"
+#            or /opt/Windsurf/resources/app/extensions/windsurf/bin/language_server_linux_x64
+#   Windows: %APPDATA%\Windsurf\bin\language_server_windows_x64.exe
+#
+#   # Install from the local desktop copy:
+#   bash install-ls.sh /path/to/language_server_linux_x64
+#
+# Once swapped, /v1/models will auto-discover the newer catalog from the cloud.
+
+cat > .env << 'EOF'
+PORT=3003
+API_KEY=
+DEFAULT_MODEL=claude-4.5-sonnet-thinking
+MAX_TOKENS=8192
+LOG_LEVEL=info
+LS_BINARY_PATH=/opt/windsurf/language_server_linux_x64
+LS_DATA_DIR=/opt/windsurf/data
+LS_PORT=42100
+DASHBOARD_PASSWORD=
+EOF
+
+# Tip: `windsurf-api install` generates this same .env from CLI flags and
+# also downloads the Language Server, so the block above is optional.
+
+# For a local macOS run, use the LS_BINARY_PATH printed by install-ls.sh
+# and set LS_DATA_DIR to a user-writable path such as /Users/you/.windsurf/data.
+
+# Note: Inline comments are supported in .env for unquoted values:
+#   PORT=3003  # Service port
+# Quoted values preserve everything inside the quotes.
+
+node src/index.js
+```
+
+## Add Accounts
+
+After the service is running, you need to add Windsurf accounts. There are several ways:
+
+**Method 1: CLI (Recommended for headless setups)**
+
+```bash
+windsurf-api login --token YOUR_TOKEN
+```
+
+**Method 2: Dashboard One-Click Login**
+
+Open `http://YOUR_IP:3003/dashboard` → Login to get token → Click **Sign in with Google** or **Sign in with GitHub** (OAuth popup) or fill in email/password directly. All methods will automatically add the account to the pool.
+
+**Method 3: Token via HTTP (Works with any login method)**
+
+Go to [windsurf.com/show-auth-token](https://windsurf.com/show-auth-token) to copy your token:
+
+```bash
+curl -X POST http://localhost:3003/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"token": "YOUR_TOKEN"}'
+```
+
+**Method 4: Batch**
+
+```bash
+curl -X POST http://localhost:3003/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"accounts": [{"token": "t1"}, {"token": "t2"}]}'
+```
+
+## Usage Examples
+
+### OpenAI Format (Python / JS / curl)
+
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://YOUR_IP:3003/v1", api_key="YOUR_API_KEY")
+r = client.chat.completions.create(
+    model="claude-sonnet-4.6",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+print(r.choices[0].message.content)
+```
+
+The OpenAI surface supports streaming (SSE), tool / function calling (`tools`, `tool_choice`), `response_format` JSON mode, multimodal image inputs, reasoning effort, and real `usage` token counts.
+
+### Anthropic Format (Directly with Claude Code)
+
+```bash
+export ANTHROPIC_BASE_URL=http://YOUR_IP:3003
+export ANTHROPIC_API_KEY=YOUR_API_KEY
+claude                # Use Claude Code as usual
+```
+
+```bash
+# Raw curl test
+curl http://localhost:3003/v1/messages \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{"model":"claude-opus-4.6","max_tokens":100,"messages":[{"role":"user","content":"Hello"}]}'
+```
+
+### Cline / Cursor / Aider
+
+In your client's settings for **Custom OpenAI Compatible**:
+- Base URL: `http://YOUR_IP:3003/v1`
+- API Key: YOUR_API_KEY
+- Model: Choose any supported model.
+
+> **Cursor users**: Cursor's client-side whitelist blocks model names containing `claude` (the request never reaches the backend). Use these aliases instead:
+>
+> | Type in Cursor | Actual model |
+> |---|---|
+> | `opus-4.6` | claude-opus-4.6 |
+> | `sonnet-4.6` | claude-sonnet-4.6 |
+> | `opus-4.7` | claude-opus-4-7-medium |
+> | `ws-opus` | claude-opus-4.6 |
+> | `ws-sonnet` | claude-sonnet-4.6 |
+>
+> GPT / Gemini / DeepSeek models are not affected by Cursor's filter — use their original names.
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3003` | Service port |
+| `API_KEY` | empty | API key required for requests. Leave empty to disable validation. |
+| `HOST` | `0.0.0.0` | Bind host. Set to `127.0.0.1` for localhost-only deployments. |
+| `DATA_DIR` | project root | Directory for persisted JSON state and `logs/`. Docker deployments should usually use `/data`. |
+| `CODEIUM_API_KEY` | empty | Direct API key from Windsurf (alternative to token-based auth). |
+| `CODEIUM_AUTH_TOKEN` | empty | Token from [windsurf.com/show-auth-token](https://windsurf.com/show-auth-token). |
+| `CODEIUM_EMAIL` | empty | Email for Windsurf account authentication. |
+| `CODEIUM_PASSWORD` | empty | Password for Windsurf account authentication. |
+| `CODEIUM_API_URL` | `https://server.self-serve.windsurf.com` | Windsurf cloud API endpoint. |
+| `DEFAULT_MODEL` | `claude-4.5-sonnet-thinking` | The model to use if `model` is not specified. |
+| `MAX_TOKENS` | `8192` | Default maximum number of response tokens. |
+| `LOG_LEVEL` | `info` | debug / info / warn / error |
+| `LS_BINARY_PATH` | `/opt/windsurf/language_server_linux_x64` | Path to the LS binary. |
+| `LS_PORT` | `42100` | LS gRPC port. |
+| `LS_DATA_DIR` | Linux: `/opt/windsurf/data`; macOS: `~/.windsurf/data` | Per-proxy LS data directory root. |
+| `LS_MAX_INSTANCES` | adaptive, max `20` | Maximum LS pool size. The adaptive default reserves at least one non-default proxy slot on small hosts. |
+| `LS_SPAWN_MIN_AVAILABLE_BYTES` | `700MB` | Minimum available memory required before starting a new non-default LS. |
+| `LS_PREWARM_DEFAULT` | `1` | Set to `0` to skip startup default-LS prewarm and start LS lazily on first request. Useful for low-memory, all-proxy pools. |
+| `LS_PREWARM_PROXIES` | `0` | Set to `1` to prewarm all proxy LS instances on startup. Scheduled probes and predictive prewarm only reuse idle resident LS instances. |
+| `LS_PREWARM_ON_ACCOUNT_ADD` | `0` | Set to `1` to prewarm LS immediately after dashboard/import/OAuth account add. Default avoids memory spikes during bulk import. |
+| `WINDSURFAPI_NATIVE_TOOL_BRIDGE` | empty | Lab/remote-execution opt-in only. `all_mapped` enables native bridge only when every declared function tool is allowlisted and mappable; `1` enables partition mode for mapped subsets. Do not treat this as a general fix for local IDE tools. |
+| `WINDSURFAPI_NATIVE_TOOL_BRIDGE_TOOLS` | `Bash/shell_command/run_command` families | Tool allowlist for native bridge. The default intentionally contains only the command path. `Read` / `Grep` / `Glob` / `WebSearch` / `WebFetch` require explicit allowlisting plus model/account/API-key gates and are still protocol-lab scope, not production defaults. |
+| `WINDSURFAPI_NATIVE_TOOL_BRIDGE_MODELS` / `PROVIDERS` / `ROUTES` / `CALLERS` / `ACCOUNTS` / `API_KEYS` | empty | Optional native-bridge gray gates. Empty means unrestricted; when set, the request must match. `ACCOUNTS` accepts upstream account id/email. `API_KEYS` matches caller API keys without passing plaintext tokens into chat logic. |
+| `WINDSURFAPI_NATIVE_TOOL_BRIDGE_OFF` | empty | Set to `1` to force native bridge off. |
+| `WINDSURFAPI_SPECIAL_AGENT_BACKEND` | empty | Optional lab-only special-agent backend. Set `devin-cli` to test `swe-1.6`, `swe-1.6-fast`, `adaptive`, and `arena-*` through Devin CLI instead of direct Cascade. This is not a normal catalog-model fix. |
+| `DEVIN_CLI_PATH` | `devin` | Devin CLI executable path. Docker/macOS deployments must install or mount it themselves. |
+| `DEVIN_CLI_MODE` | `print` | `print` uses conservative `devin -p`; `acp` is an experimental ACP stdio backend using upstream Windsurf account-pool apiKeys. |
+| `DEVIN_MAX_PROCS` | `1` | Maximum concurrent Devin CLI processes. |
+| `DEVIN_ONLY` | empty | Kill-switch. Set to `1` to retire Cascade and force every request onto the Devin special-agent backend. |
+| `DASHBOARD_PASSWORD` | empty | Dashboard password. Leave empty for no password. |
+| `ALLOW_PRIVATE_PROXY_HOSTS` | empty | Set to `1` to allow private/internal IPs (e.g., `192.168.x.x`, `10.x.x.x`) in proxy tests and login. Leave empty to only allow public addresses (default). |
+| `CASCADE_REUSE_STRICT` | `0` | Set to `1` for strict conversation reuse mode (waits for same fingerprint). |
+| `CASCADE_REUSE_STRICT_RETRY_MS` | `60000` | Retry delay in ms for strict reuse mode. |
+| `CASCADE_REUSE_HASH_SYSTEM` | `0` | Set to `1` to include system messages in conversation reuse hash. |
+| `CASCADE_REUSE_BY_CALLER` | `0` | Set to `1` to enable caller-based fallback reuse. When fingerprint misses, falls back to the latest cascade for the same caller+model. Best for single-user Claude Code setups. |
+| `CASCADE_POOL_MAX` | `500` | Max conversation pool entries. Set to `1`–`5` for single-user setups to minimize resource usage. |
+
+## Dashboard Features
+
+Open `http://YOUR_IP:3003/dashboard`:
+
+| Panel | Features |
+|---|---|
+| **Overview** | Runtime status · Account pool · LS health · Success rate |
+| **Login/Get Token** | Google / GitHub OAuth one-click login · Email/password login · **Test Proxy** button (tests egress IP) |
+| **Account Management** | Add / Delete / Disable · Detect subscription level · Check balance · Ban models via blacklist |
+| **Model Control** | Global model whitelist/blacklist |
+| **Proxy Config** | Global or per-account HTTP / SOCKS5 proxy |
+| **Logs** | Real-time SSE streaming · Filter by level · `turns=N chars=M` diagnostics per turn |
+| **Stats & Analytics** | Time range 6h / 24h / 72h · Per-account dimensions · p50 / p95 latency |
+| **Experimental** | Cascade conversation reuse · **Model Identity Injection (custom prompt per vendor)** |
+
+## Supported Models
+
+100+ static models in the main catalog plus dynamic cloud-side models added at startup via `mergeCloudModels`. Full list: `GET /v1/models`, or browse the [GitHub Pages model catalog](https://dwgx.github.io/WindsurfAPI/#models) (auto-generated from `src/models.js`).
+
+<details>
+<summary><b>Claude (Anthropic)</b> — 21 models</summary>
+
+claude-3.5-sonnet / 3.7-sonnet / thinking · claude-4-sonnet / opus / thinking · claude-4.1-opus · claude-4.5-haiku / sonnet / opus · claude-sonnet-4.6 (incl. 1m / thinking / thinking-1m) · claude-opus-4.6 / thinking · **claude-opus-4.7-medium**
+
+</details>
+
+<details>
+<summary><b>GPT (OpenAI)</b> — 55 models</summary>
+
+gpt-4o · gpt-4.1 · gpt-5 series (incl. medium / high / codex) · **gpt-5.1 series** (base / low / medium / high + fast + codex, all 6 variants) · **gpt-5.2 series** (none / low / medium / high / xhigh + fast + codex) · **gpt-5.4 series** (base / mini × low/medium/high/xhigh) · o3 series (base / mini / pro) · o4-mini
+
+</details>
+
+<details>
+<summary><b>Gemini (Google)</b> — 9 models</summary>
+
+gemini-2.5-pro / flash · gemini-3.0-pro / flash (minimal / low / medium / high — 4 reasoning levels) · gemini-3.1-pro (low / high)
+
+</details>
+
+<details>
+<summary><b>Open source / Chinese providers</b></summary>
+
+**Kimi**: kimi-k2 / k2.5 / k2-6 / k2-7 · **GLM**: glm-4.7 / 5 / 5.1 / 5.2 · **Qwen**: qwen-3 · **Grok**: grok-3 / grok-3-mini-thinking / grok-code-fast-1 · **MiniMax**: minimax-m2.5
+
+</details>
+
+<details>
+<summary><b>Windsurf in-house + Arena</b></summary>
+
+swe-1.5 / 1.5-fast / 1.6 / 1.6-fast · arena-fast · arena-smart
+
+</details>
+
+> **Free-account entitlements** typically include `gemini-2.5-flash`, `glm-4.7` / `glm-5` / `5.1`, `kimi-k2` / `k2.5` / `k2-6`, `qwen-3` and similar open-source models; Claude family, GPT family, and Opus / thinking variants require Pro. Each account's exact list shows up in the dashboard.
+>
+> **Tool-calling reliability (measured v2.0.82+):** Claude family is the most reliable (their training covered prompt-level tool protocols); GLM-4.7 / Kimi-K2.5 work for most cases via NLU fallback + optional retry-with-correction; GLM-5.1 is unreliable on the cascade backend (it often returns empty responses, no narration to recover from); GPT family is also limited because the cascade upstream doesn't carry `tools[]` schema. For Claude Code / Cline / Codex doing local tool calls, prefer `claude-haiku-4.5` or `claude-sonnet-4.6`.
+
+### Language-Following for CJK Users
+
+The service automatically detects Chinese, Japanese, or Korean characters in your messages and injects a language-following hint to ensure the model responds in the same language. This fixes the issue where Claude Code's large English system prompt would override the communication language.
+
+## Architecture Highlights
+
+- **Zero npm dependencies** Everything uses `node:*` built-ins · Protobuf is handcrafted (`src/proto.js`) · Download and run.
+- **Account Pool + LS Pool** Each independent proxy gets its own LS instance, no mixing.
+- **NO_TOOL Mode** `planner_mode=3` disables Cascade's built-in tool loop to prevent `/tmp/windsurf-workspace/` path leakage.
+- **Three-layer sanitization** LS built-in tool result filtering · `<tool_call>` text parsing · Output path cleaning.
+- **Real token counting** Fetches real `inputTokens` / `outputTokens` / `cacheRead` / `cacheWrite` from `CortexStepMetadata.model_usage`. `prompt_tokens` includes cacheWrite.
+- **Cross-platform CLI** A single `windsurf-api` command (`src/cli.js`, zero deps, `node:util` arg parsing) covers install / start / login / accounts / status on Linux, macOS, and Windows.
+
+## PM2 Deployment
+
+```bash
+npm install -g pm2
+pm2 start src/index.js --name windsurf-api
+pm2 save && pm2 startup
+```
+
+**Do not** use `pm2 restart` (it can create zombie processes). Use the one-click update script `bash update.sh`.
+
+## Firewall
+
+```bash
+# Ubuntu
+ufw allow 3003/tcp
+
+# CentOS
+firewall-cmd --add-port=3003/tcp --permanent && firewall-cmd --reload
+```
+
+Remember to open port 3003 in your cloud provider's security group.
+
+## FAQ
+
+**Q: Login fails with "Invalid email or password"**
+A: You probably signed up for Windsurf using Google/GitHub, which means your account doesn't have a password. The Dashboard's login panel now directly supports one-click login via Google / GitHub OAuth.
+
+**Q: The model says "I cannot operate on the file system"**
+A: This is a **chat API**, not an IDE agent. To have the model actually modify files, use a client CLI like **Claude Code / Cline / Cursor / Aider** and point their API base URL to this service. The model will produce `tool_use`, the client executes it locally, and sends the `tool_result` back. The diagram above shows the detailed flow.
+
+**Q: Context is lost / The model forgets previous parts of the conversation**
+A: Multi-account round-robin will **not** lose context — every request repackages the full history and sends it to Cascade. The real reason is usually a relay layer (like new-api) not passing the full `messages[]` array. Check `turns=N` in the Dashboard logs: if it's a multi-turn conversation but `turns=1`, then a layer before you has already dropped the history.
+
+**Q: Long prompts are timing out**
+A: This has been fixed. Cold stall detection is now adaptive to input length, with a max timeout of 90s for long inputs.
+
+**Q: Can I use Claude Code?**
+A: Yes. `export ANTHROPIC_BASE_URL=http://YOUR_API` + `export ANTHROPIC_API_KEY=YOUR_KEY`. `/v1/messages` supports the full suite: system, tools, tool_use, tool_result, stream, and multi-turn, all tested and working.
+
+**Q: What models can free accounts use?**
+A: Mostly `gemini-2.5-flash`, `glm-4.7` / `5` / `5.1`, `kimi-k2` / `k2.5` / `k2-6`, `qwen-3` (open-source series). Claude family, GPT family, and Opus / Max / -thinking variants need Pro entitlement. The dashboard shows each account's entitled list, and `model_not_entitled` error responses include an `available_in_pool` field with the names you can switch to.
+
+**Q: Are tool calls reliable on free accounts?**
+A: Depends on the model. Claude family is rock-solid (also free-account-entitled when available). GLM-4.7 / Kimi-K2.5 work in most cases via NLU recovery + `WINDSURFAPI_NLU_RETRY=1` retry-with-correction. GLM-5.1 is unreliable on the cascade backend (frequent empty responses) — proxy can't fix this. GPT family is similarly limited by the cascade protocol layer not passing `tools[]` schema. **For Claude Code / Cline / Codex doing local file/shell ops prefer `claude-haiku-4.5` or `claude-sonnet-4.6`.**
+
+**Q: 31 trial accounts go unavailable after a few hundred calls**
+A: Likely the model is a weekly-quota variant — `claude-opus-4-7-max` / `gpt-5.5-xhigh` / `claude-sonnet-4-7-thinking` etc. cap at 5 calls per week per account, so 31 accounts × 5 ≈ 150 calls hit the wall fast. Switch to `claude-sonnet-4.6` / `claude-haiku-4.5` (daily quotas are much wider). Verify with `docker logs windsurfapi-windsurf-api-1 | grep rate_limit` — the per-account cooldown reason is in the log.
+
+## Contributors
+
+This project is a fork; the heavy lifting on the upstream code came from the folks below who sent pull requests or systematically audited [dwgx/WindsurfAPI](https://github.com/dwgx/WindsurfAPI):
+
+## License
+
+MIT License. See [LICENSE](LICENSE).
+
+## Star History
+
+https://www.star-history.com/?type=date&repos=dwgx/WindsurfAPI

@@ -1,0 +1,49 @@
+{
+  "name": "windsurf-api",
+  "version": "0.1.0",
+  "description": "Windsurf to OpenAI + Anthropic compatible API proxy. Turns Windsurf's 100+ AI models (Claude, GPT, Gemini, DeepSeek, Grok, Qwen, Kimi, GLM, SWE) into dual-protocol API endpoints. Zero npm deps.",
+  "type": "module",
+  "main": "src/app/index.js",
+  "bin": {
+    "windsurf-api": "src/app/cli.js"
+  },
+  "scripts": {
+    "start": "node src/app/index.js",
+    "dev": "node --watch src/app/index.js",
+    "test": "node --import ./test/setup-env.mjs --test --test-force-exit test/*/*.test.js",
+    "test:shard": "node scripts/run-test-shard.mjs",
+    "test:release": "node --import ./test/setup-env.mjs --test --test-force-exit test/conversation-cache/cache.test.js test/account-pool/dashboard-api.test.js test/_meta/dashboard-syntax.test.js test/native-bridge-docs.test.js test/language-server/proto-trace.test.js test/_meta/secret-scan.test.js test/_meta/test-shard-script.test.js test/_meta/release-workflow.test.js test/core/version.test.js",
+    "smoke:native-bridge": "node scripts/native-bridge-smoke.mjs",
+    "smoke:special-agent": "node scripts/special-agent-smoke.mjs",
+    "smoke:lsp-matrix": "node scripts/lsp-capacity-matrix.mjs",
+    "probe:web-search": "node scripts/web-search-direct-probe.mjs",
+    "sync:contributors": "node scripts/sync-docs-contributors.mjs",
+    "secret-scan": "node scripts/secret-scan.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT",
+  "author": "andersonviudes <andersonvieiraviudes@gmail.com> (https://github.com/andersonviudes)",
+  "homepage": "https://github.com/andersonviudes/windsurf-openai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andersonviudes/windsurf-openai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andersonviudes/windsurf-openai/issues"
+  },
+  "keywords": [
+    "windsurf",
+    "codeium",
+    "openai",
+    "anthropic",
+    "claude",
+    "gpt",
+    "gemini",
+    "api-proxy",
+    "llm-gateway",
+    "reverse-engineering",
+    "zero-dependency"
+  ]
+}

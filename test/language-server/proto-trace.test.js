@@ -1,0 +1,718 @@
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { grpcFrame } from '../../src/language-server/grpc.js';
+import { writeBoolField, writeBytesField, writeMessageField, writeStringField, writeVarintField } from '../../src/language-server/proto.js';
+import { buildHandleReadUrlContentInteractionRequest, buildSendCascadeMessageRequest } from '../../src/language-server/windsurf.js';
+import {
+  _resetProtoTraceForTests,
+  summarizeProtoForTrace,
+  traceGrpcPayload,
+  unwrapTracePayload,
+} from '../../src/language-server/proto-trace.js';
+
+const OLD_ENV = { ...process.env };
+
+describe('proto trace', () => {
+  let dir;
+
+  beforeEach(() => {
+    process.env = { ...OLD_ENV };
+    dir = mkdtempSync(join(tmpdir(), 'wa-proto-trace-'));
+    process.env.WINDSURFAPI_PROTO_TRACE_DIR = dir;
+    _resetProtoTraceForTests();
+  });
+
+  afterEach(() => {
+    process.env = { ...OLD_ENV };
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('summarizes nested protobuf messages without raw string previews by default', () => {
+    const inner = Buffer.concat([
+      writeStringField(1, 'devin-session-token-secret-value'),
+      writeVarintField(2, 7),
+    ]);
+    const top = writeMessageField(3, inner);
+
+    const summary = summarizeProtoForTrace(top);
+    assert.equal(summary[0].field, 3);
+    assert.equal(summary[0].type, 'message');
+    assert.equal(summary[0].fields[0].field, 1);
+    assert.equal(summary[0].fields[0].type, 'string');
+    assert.equal(summary[0].fields[0].bytes, 'devin-session-token-secret-value'.length);
+    assert.equal(summary[0].fields[0].preview, undefined);
+    assert.equal(summary[0].fields[1].value, 7);
+  });
+
+  it('unwraps a gRPC frame before tracing', () => {
+    const proto = writeStringField(1, 'hello');
+    assert.deepEqual(unwrapTracePayload(grpcFrame(proto), 'grpc'), proto);
+  });
+
+  it('writes JSONL trace records only when enabled and redacts raw text', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const proto = writeStringField(1, 'api_key=super-secret-token-value-1234567890');
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetUserStatus',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetUserStatus.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    assert.equal(rec.direction, 'request');
+    assert.equal(rec.method, 'GetUserStatus');
+    assert.equal(rec.fields[0].type, 'string');
+    assert.ok(!line.includes('super-secret-token-value'));
+  });
+
+  it('adds semantic SendUserCascadeMessage native tool config summaries', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const proto = buildSendCascadeMessageRequest('k', 'cid', 'hi', 12345, 'MODEL_TEST', 'sess', {
+      nativeMode: true,
+      nativeAllowlist: ['read_file', 'run_command', 'grep_v2', 'list_dir'],
+      additionalSteps: [
+        Buffer.concat([
+          writeVarintField(1, 28),
+          writeVarintField(4, 3),
+          writeMessageField(28, writeStringField(23, 'printf test')),
+        ]),
+      ],
+    });
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-SendUserCascadeMessage.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    assert.equal(rec.semantic.plannerMode, 1);
+    assert.equal(rec.semantic.additionalStepCount, 1);
+    assert.equal(rec.semantic.hasNativeToolConfig, true);
+    assert.deepEqual(rec.semantic.nativeToolConfig.allowlist, ['read_file', 'run_command', 'grep_v2', 'list_dir']);
+    assert.deepEqual(rec.semantic.nativeToolConfig.subconfigFields.sort((a, b) => a - b), [8, 10, 19, 33]);
+    assert.deepEqual(rec.semantic.nativeToolConfig.subconfigs.map(c => c.kind), ['run_command', 'view_file', 'list_dir', 'grep_v2']);
+    assert.deepEqual(rec.semantic.nativeToolConfig.subconfigs.map(c => c.bytes), [0, 0, 0, 0]);
+  });
+
+  it('summarizes native tool config subconfig child fields for IDE diffing', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const toolConfig = Buffer.concat([
+      writeMessageField(33, Buffer.concat([
+        writeStringField(1, 'rg'),
+        writeBoolField(7, true),
+      ])),
+      writeStringField(32, 'grep_v2'),
+    ]);
+    const planner = writeMessageField(13, toolConfig);
+    const cascadeConfig = writeMessageField(1, planner);
+    const proto = writeMessageField(5, cascadeConfig);
+
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-SendUserCascadeMessage.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    const grep = rec.semantic.nativeToolConfig.subconfigs[0];
+    assert.equal(grep.field, 33);
+    assert.equal(grep.kind, 'grep_v2');
+    assert.deepEqual(grep.fieldNumbers, [1, 7]);
+    assert.deepEqual(grep.fields.map(f => [f.field, f.wireType]), [[1, 2], [7, 0]]);
+    assert.ok(grep.bytes > 0);
+  });
+
+  it('summarizes unknown native tool config fields for web matrix experiments', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const toolConfig = Buffer.concat([
+      writeMessageField(42, writeStringField(1, 'web')),
+      writeBytesField(40, Buffer.alloc(0)),
+      writeStringField(32, 'search_web'),
+      writeStringField(32, 'read_url_content'),
+    ]);
+    const planner = writeMessageField(13, toolConfig);
+    const cascadeConfig = writeMessageField(1, planner);
+    const proto = writeMessageField(5, cascadeConfig);
+
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-SendUserCascadeMessage.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    assert.deepEqual(rec.semantic.nativeToolConfig.allowlist, ['search_web', 'read_url_content']);
+    assert.deepEqual(rec.semantic.nativeToolConfig.subconfigFields, []);
+    assert.deepEqual(rec.semantic.nativeToolConfig.unknownFields.map(f => f.field), [42, 40]);
+    assert.deepEqual(rec.semantic.nativeToolConfig.unknownFields[0].summary.fieldNumbers, [1]);
+    assert.equal(rec.semantic.nativeToolConfig.unknownFields[1].bytes, 0);
+  });
+
+  it('summarizes confirmed web native tool config fields as subconfigs', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const proto = buildSendCascadeMessageRequest('k', 'cid', 'hi', 12345, 'MODEL_TEST', 'sess', {
+      nativeMode: true,
+      nativeAllowlist: ['search_web', 'read_url_content'],
+    });
+
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-SendUserCascadeMessage.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    assert.deepEqual(rec.semantic.nativeToolConfig.allowlist, ['search_web', 'read_url_content']);
+    assert.deepEqual(rec.semantic.nativeToolConfig.subconfigFields, [13, 37]);
+    assert.deepEqual(rec.semantic.nativeToolConfig.subconfigs.map(s => s.kind), ['search_web', 'read_url_content']);
+    assert.deepEqual(rec.semantic.nativeToolConfig.unknownFields, []);
+  });
+
+  it('decodes web native tool subconfig enums without leaking URL allowlists', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    process.env.WINDSURFAPI_NATIVE_TOOL_BRIDGE_CONFIG_RAW =
+      'search_web:120408011003;read_url_content:12180a1468747470733a2f2f6578616d706c652e636f6d2f1002';
+    const proto = buildSendCascadeMessageRequest('k', 'cid', 'hi', 12345, 'MODEL_TEST', 'sess', {
+      nativeMode: true,
+      nativeAllowlist: ['search_web', 'read_url_content'],
+    });
+
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-SendUserCascadeMessage.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    const search = rec.semantic.nativeToolConfig.subconfigs.find(s => s.kind === 'search_web');
+    const fetch = rec.semantic.nativeToolConfig.subconfigs.find(s => s.kind === 'read_url_content');
+    assert.equal(search.decoded.thirdPartyConfig.provider.name, 'OPENAI');
+    assert.equal(search.decoded.thirdPartyConfig.model.name, 'O4_MINI');
+    assert.equal(fetch.decoded.autoWebRequestConfig.autoExecutionPolicy.name, 'ALLOWLIST');
+    assert.equal(fetch.decoded.autoWebRequestConfig.allowlistCount, 1);
+    assert.equal(fetch.decoded.autoWebRequestConfig.allowlist[0].bytes, 'https://example.com/'.length);
+    assert.ok(!line.includes('https://example.com/'));
+  });
+
+  it('adds semantic GetCascadeTrajectorySteps native oneof summaries', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const grepBody = Buffer.concat([
+      writeStringField(2, 'Proxy workspace placeholder'),
+      writeStringField(3, '/home/user/projects/workspace-test'),
+      writeStringField(4, 'README.md'),
+      writeStringField(15, 'README.md\n'),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 105),
+      writeVarintField(4, 3),
+      writeMessageField(105, grepBody),
+    ]);
+    const response = writeMessageField(1, step);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: response,
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    assert.equal(rec.semantic.stepCount, 1);
+    assert.equal(rec.semantic.steps[0].type, 105);
+    assert.equal(rec.semantic.steps[0].status, 3);
+    assert.equal(rec.semantic.steps[0].nativeOneofs[0].field, 105);
+    assert.equal(rec.semantic.steps[0].nativeOneofs[0].kind, 'grep_search_v2');
+    assert.equal(rec.semantic.steps[0].nativeOneofs[0].body.rawOutputBytes, 'README.md\n'.length);
+  });
+
+  it('summarizes web trajectory payload shapes for protocol diffing', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const doc = Buffer.concat([
+      writeStringField(2, 'document text'),
+      writeStringField(3, 'https://example.com/'),
+      writeStringField(4, 'title'),
+      writeMessageField(6, writeStringField(1, 'chunk text')),
+      writeStringField(7, 'document summary'),
+    ]);
+    const searchBody = Buffer.concat([
+      writeStringField(1, 'WindsurfAPI native bridge'),
+      writeMessageField(2, doc),
+      writeStringField(3, 'example.com'),
+      writeStringField(5, 'summary'),
+    ]);
+    const fetchBody = Buffer.concat([
+      writeStringField(1, 'https://example.com/'),
+      writeMessageField(2, doc),
+      writeStringField(3, 'https://example.com/resolved'),
+      writeVarintField(4, 123),
+      writeVarintField(7, 2),
+    ]);
+    const response = Buffer.concat([
+      writeMessageField(1, Buffer.concat([
+        writeVarintField(1, 42),
+        writeVarintField(4, 3),
+        writeMessageField(42, searchBody),
+      ])),
+      writeMessageField(1, Buffer.concat([
+        writeVarintField(1, 40),
+        writeVarintField(4, 3),
+        writeMessageField(40, fetchBody),
+      ])),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: response,
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    const search = rec.semantic.steps[0].nativeOneofs[0];
+    assert.equal(search.kind, 'search_web');
+    assert.equal(search.body.webDocumentCount, 1);
+    assert.deepEqual(search.body.fieldNumbers, [1, 2, 3, 5]);
+    assert.equal(search.body.messageFields[0].field, 2);
+    const fetch = rec.semantic.steps[1].nativeOneofs[0];
+    assert.equal(fetch.kind, 'read_url_content');
+    assert.deepEqual(fetch.body.fieldNumbers, [1, 2, 3, 4, 7]);
+    assert.equal(fetch.body.webDocument.textBytes, 'document text'.length);
+    assert.equal(fetch.body.webDocument.urlBytes, 'https://example.com/'.length);
+    assert.equal(fetch.body.webDocument.titleBytes, 'title'.length);
+    assert.equal(fetch.body.webDocument.summaryBytes, 'document summary'.length);
+    assert.equal(fetch.body.webDocument.chunkCount, 1);
+    assert.equal(fetch.body.webDocument.chunkTextBytes, 'chunk text'.length);
+    assert.equal(fetch.body.resolvedUrlBytes, 'https://example.com/resolved'.length);
+    assert.equal(fetch.body.latencyMs, 123);
+    assert.equal(fetch.body.autoRunDecision, 2);
+    assert.deepEqual(fetch.body.messageFields, []);
+    assert.deepEqual(rec.semantic.steps[1].webFetchTrace, {
+      state: 'completed_web_document',
+      stepType: 40,
+      status: 3,
+      hasRequestedInteraction: false,
+      hasReadUrlOneof: true,
+      hasWebDocument: true,
+      legacySummaryBytes: 0,
+      autoRunDecision: 2,
+      readUrlFieldNumbers: [1, 2, 3, 4, 7],
+      requestedFieldNumbers: [],
+      errorClassifications: {},
+    });
+  });
+
+  it('classifies read-url web_document as completed even with requested interaction echo', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const doc = Buffer.concat([
+      writeStringField(2, 'document text'),
+      writeStringField(3, 'https://example.com/'),
+      writeStringField(7, 'document summary'),
+    ]);
+    const fetchBody = Buffer.concat([
+      writeStringField(1, 'https://example.com/'),
+      writeMessageField(2, doc),
+      writeStringField(3, 'https://example.com/'),
+      writeVarintField(4, 123),
+      writeVarintField(7, 8),
+    ]);
+    const spec = Buffer.concat([
+      writeStringField(1, 'https://example.com/'),
+      writeStringField(2, 'https://example.com'),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 31),
+      writeVarintField(4, 3),
+      writeMessageField(56, writeMessageField(14, spec)),
+      writeMessageField(40, fetchBody),
+    ]);
+
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    assert.equal(rec.semantic.steps[0].type, 31);
+    assert.equal(rec.semantic.steps[0].webFetchTrace.state, 'completed_web_document');
+    assert.equal(rec.semantic.steps[0].webFetchTrace.hasRequestedInteraction, true);
+    assert.equal(rec.semantic.steps[0].webFetchTrace.hasWebDocument, true);
+  });
+
+  it('summarizes non-oneof step message fields for protocol diffing', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const viewWrapper = Buffer.concat([
+      writeStringField(2, 'file:///workspace/README.md'),
+      writeMessageField(3, writeStringField(1, 'nested request')),
+      writeStringField(4, 'observed content'),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 14),
+      writeVarintField(4, 3),
+      writeMessageField(19, viewWrapper),
+    ]);
+    const response = writeMessageField(1, step);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: response,
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    assert.equal(rec.semantic.steps[0].type, 14);
+    assert.deepEqual(rec.semantic.steps[0].nativeOneofs, []);
+    assert.equal(rec.semantic.steps[0].messageFields[0].field, 19);
+    assert.deepEqual(rec.semantic.steps[0].messageFields[0].fieldNumbers, [2, 3, 4]);
+  });
+
+  it('summarizes read-url requested interactions without raw URLs', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const spec = Buffer.concat([
+      writeStringField(1, 'https://example.com/private/page'),
+      writeStringField(2, 'https://example.com'),
+    ]);
+    const requestedInteraction = writeMessageField(14, spec);
+    const step = Buffer.concat([
+      writeVarintField(1, 40),
+      writeVarintField(4, 2),
+      writeMessageField(56, requestedInteraction),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    const summary = rec.semantic.steps[0].requestedInteraction;
+    assert.deepEqual(summary.fieldNumbers, [14]);
+    assert.equal(summary.interactions[0].field, 14);
+    assert.equal(summary.interactions[0].kind, 'read_url_content');
+    assert.equal(summary.interactions[0].body.urlBytes, 'https://example.com/private/page'.length);
+    assert.equal(summary.interactions[0].body.originBytes, 'https://example.com'.length);
+    assert.ok(summary.interactions[0].body.urlHash);
+    assert.ok(summary.interactions[0].body.originHash);
+    assert.deepEqual(rec.semantic.steps[0].webFetchTrace, {
+      state: 'pending_permission',
+      stepType: 40,
+      status: 2,
+      hasRequestedInteraction: true,
+      hasReadUrlOneof: false,
+      hasWebDocument: false,
+      legacySummaryBytes: 0,
+      autoRunDecision: null,
+      readUrlFieldNumbers: [],
+      requestedFieldNumbers: [1, 2],
+      errorClassifications: {},
+    });
+    assert.doesNotMatch(line, /private\/page/);
+    assert.doesNotMatch(line, /https:\/\/example\.com/);
+  });
+
+  it('summarizes WebFetch precondition errors as trajectory branch evidence', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const errorMessage = writeStringField(1, 'permission_denied: read_url_content failed precondition for https://example.com/private/page');
+    const step = Buffer.concat([
+      writeVarintField(1, 17),
+      writeVarintField(4, 3),
+      writeMessageField(24, errorMessage),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    assert.deepEqual(rec.semantic.steps[0].webFetchTrace, {
+      state: 'error',
+      stepType: 17,
+      status: 3,
+      hasRequestedInteraction: false,
+      hasReadUrlOneof: false,
+      hasWebDocument: false,
+      legacySummaryBytes: 0,
+      autoRunDecision: null,
+      readUrlFieldNumbers: [],
+      requestedFieldNumbers: [],
+      errorClassifications: {
+        permissionDenied: true,
+        failedPrecondition: true,
+      },
+    });
+    assert.doesNotMatch(line, /private\/page/);
+    assert.doesNotMatch(line, /permission_denied: read_url_content/);
+  });
+
+  it('summarizes read-url approval interactions without raw URLs', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const proto = buildHandleReadUrlContentInteractionRequest('cascade-secret-id', {
+      trajectoryId: 'trajectory-secret-id',
+      stepIndex: 12,
+      action: 1,
+      url: 'https://example.com/private/page',
+      origin: 'https://example.com',
+    });
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/HandleCascadeUserInteraction',
+      direction: 'request',
+      body: grpcFrame(proto),
+      transport: 'grpc',
+      framed: true,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-HandleCascadeUserInteraction.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    assert.equal(rec.semantic.cascadeIdBytes, 'cascade-secret-id'.length);
+    assert.ok(rec.semantic.cascadeIdHash);
+    assert.equal(rec.semantic.interaction.trajectoryIdBytes, 'trajectory-secret-id'.length);
+    assert.equal(rec.semantic.interaction.stepIndex, 12);
+    assert.deepEqual(rec.semantic.interaction.fieldNumbers, [1, 2, 15]);
+    assert.equal(rec.semantic.interaction.readUrlContent.action.name, 'ALLOW_ONCE');
+    assert.equal(rec.semantic.interaction.readUrlContent.urlBytes, 'https://example.com/private/page'.length);
+    assert.equal(rec.semantic.interaction.readUrlContent.originBytes, 'https://example.com'.length);
+    assert.ok(rec.semantic.interaction.readUrlContent.urlHash);
+    assert.ok(rec.semantic.interaction.readUrlContent.originHash);
+    assert.doesNotMatch(line, /cascade-secret-id/);
+    assert.doesNotMatch(line, /trajectory-secret-id/);
+    assert.doesNotMatch(line, /private\/page/);
+    assert.doesNotMatch(line, /https:\/\/example\.com/);
+  });
+
+  it('summarizes read wrapper field 19 children without raw strings by default', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const viewWrapper = Buffer.concat([
+      writeStringField(1, 'file:///workspace/README.md'),
+      writeStringField(2, '- Working directory: /tmp/project\nUse the Read tool exactly once.'),
+      writeMessageField(3, writeStringField(1, './nested/README.md')),
+      writeStringField(4, 'observed content'),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 14),
+      writeVarintField(4, 3),
+      writeMessageField(19, viewWrapper),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    const summary = rec.semantic.steps[0].readWrapperField19;
+    assert.deepEqual(summary.fieldNumbers, [1, 2, 3, 4]);
+    assert.equal(summary.candidateSummary.acceptedField, 1);
+    assert.deepEqual(summary.candidateSummary.pathLikeFields, [1]);
+    assert.deepEqual(summary.candidateSummary.rejectedPromptFields, [2]);
+    assert.equal(summary.candidateSummary.ambiguous, false);
+    const pathChild = summary.children.find(c => c.field === 1);
+    const promptChild = summary.children.find(c => c.field === 2);
+    const nestedChild = summary.children.find(c => c.field === 3);
+    assert.equal(pathChild.type, 'string');
+    assert.equal(pathChild.looksPathLike, true);
+    assert.equal(pathChild.basename, 'README.md');
+    assert.equal(pathChild.acceptedByParser, true);
+    assert.equal(pathChild.preview, undefined);
+    assert.equal(promptChild.looksPromptLike, true);
+    assert.equal(promptChild.acceptedByParser, false);
+    assert.equal(promptChild.hasNewline, true);
+    assert.equal(promptChild.preview, undefined);
+    assert.equal(nestedChild.type, 'message_or_bytes');
+    assert.deepEqual(nestedChild.summary.fieldNumbers, [1]);
+    assert.doesNotMatch(line, /workspace\/README/);
+    assert.doesNotMatch(line, /Working directory/);
+  });
+
+  it('marks prompt-only read wrapper fields as rejected evidence', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const viewWrapper = Buffer.concat([
+      writeStringField(2, '- Working directory: /tmp/project\nUse the Read tool exactly once.'),
+      writeStringField(4, 'observed content'),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 14),
+      writeVarintField(4, 3),
+      writeMessageField(19, viewWrapper),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    const summary = rec.semantic.steps[0].readWrapperField19;
+    assert.equal(summary.candidateSummary.acceptedField, null);
+    assert.deepEqual(summary.candidateSummary.pathLikeFields, []);
+    assert.deepEqual(summary.candidateSummary.rejectedPromptFields, [2]);
+    assert.equal(summary.children.find(c => c.field === 2).acceptedByParser, false);
+    assert.doesNotMatch(line, /Working directory/);
+    assert.doesNotMatch(line, /Use the Read tool/);
+  });
+
+  it('can include redacted read wrapper string previews behind a dedicated switch', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    process.env.WINDSURFAPI_PROTO_TRACE_READ_WRAPPER_STRINGS = '1';
+    const viewWrapper = Buffer.concat([
+      writeStringField(1, 'file:///workspace/README.md'),
+      writeStringField(2, 'api_key=abcdefghijklmnopqrstuvwxyz1234567890abcdef Working directory: /tmp/project'),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 14),
+      writeVarintField(4, 3),
+      writeMessageField(19, viewWrapper),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    const promptChild = rec.semantic.steps[0].readWrapperField19.children.find(c => c.field === 2);
+    assert.match(promptChild.preview, /<redacted-secret>/);
+    assert.doesNotMatch(promptChild.preview, /abcdefghijklmnopqrstuvwxyz1234567890abcdef/);
+  });
+
+  it('classifies error trajectory steps without raw strings by default', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    const details = Buffer.concat([
+      writeStringField(1, 'permission_denied: LS web executor failed precondition for user@example.com'),
+      writeStringField(2, 'an internal error occurred'),
+    ]);
+    const errorMessage = Buffer.concat([
+      writeMessageField(3, details),
+      writeVarintField(5, 1),
+    ]);
+    const step = Buffer.concat([
+      writeVarintField(1, 17),
+      writeVarintField(4, 3),
+      writeMessageField(24, errorMessage),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const line = readFileSync(file, 'utf8').trim();
+    const rec = JSON.parse(line);
+    const errorStep = rec.semantic.steps[0].errorStep;
+    assert.deepEqual(errorStep.classifications, {
+      permissionDenied: true,
+      failedPrecondition: true,
+      internalError: true,
+    });
+    assert.equal(errorStep.sources[0].field, 24);
+    assert.deepEqual(errorStep.sources[0].fieldNumbers, [3, 5]);
+    assert.equal(errorStep.sources[0].strings.length, 2);
+    assert.ok(errorStep.sources[0].strings.every(s => s.sha256 && s.bytes > 0));
+    assert.ok(errorStep.sources[0].strings.every(s => s.preview === undefined));
+    assert.doesNotMatch(line, /user@example\.com/);
+    assert.doesNotMatch(line, /permission_denied: LS web executor/);
+  });
+
+  it('can include redacted error previews behind a dedicated switch', () => {
+    process.env.WINDSURFAPI_PROTO_TRACE = '1';
+    process.env.WINDSURFAPI_PROTO_TRACE_ERROR_STRINGS = '1';
+    const errorMessage = writeStringField(
+      3,
+      'model_not_available for tester@example.com api_key=abcdefghijklmnopqrstuvwxyz1234567890abcdef'
+    );
+    const step = Buffer.concat([
+      writeVarintField(1, 17),
+      writeVarintField(4, 3),
+      writeMessageField(24, errorMessage),
+    ]);
+    traceGrpcPayload({
+      port: 42100,
+      path: '/exa.language_server_pb.LanguageServerService/GetCascadeTrajectorySteps',
+      direction: 'response',
+      body: writeMessageField(1, step),
+      transport: 'grpc',
+      framed: false,
+    });
+
+    const file = join(dir, `ls-proto-${process.pid}-GetCascadeTrajectorySteps.jsonl`);
+    const rec = JSON.parse(readFileSync(file, 'utf8').trim());
+    const stringSummary = rec.semantic.steps[0].errorStep.sources[0].strings[0];
+    assert.equal(stringSummary.classifications.modelNotAvailable, true);
+    assert.match(stringSummary.preview, /model_not_available/);
+    assert.match(stringSummary.preview, /<redacted-email>/);
+    assert.match(stringSummary.preview, /<redacted-secret>/);
+    assert.doesNotMatch(stringSummary.preview, /tester@example\.com/);
+    assert.doesNotMatch(stringSummary.preview, /abcdefghijklmnopqrstuvwxyz1234567890abcdef/);
+  });
+});

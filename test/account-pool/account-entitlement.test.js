@@ -1,0 +1,137 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { isModelAllowedForAccount, getAvailableModelsForAccount } from '../../src/account-pool/auth.js';
+
+// Free Windsurf accounts entitled by `cascade_allowed_models_config` to
+// GLM/SWE/Kimi were getting routed away from the proxy because
+// `MODEL_TIER_ACCESS.free` is a static `['gemini-2.5-flash', ...]` list
+// that ignored per-account capabilities populated authoritatively by
+// GetUserStatus. The fix is to trust `capabilities[key].reason ===
+// 'user_status'` over the tier list once GetUserStatus has run.
+
+describe('isModelAllowedForAccount — capabilities-first routing', () => {
+  it('honours user_status capability for free accounts entitled to GLM', () => {
+    const account = {
+      tier: 'free',
+      userStatusLastFetched: Date.now(),
+      capabilities: {
+        'glm-4.7': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'gemini-2.5-flash': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'claude-opus-4.6': { ok: false, reason: 'not_entitled', lastCheck: 1 },
+      },
+    };
+    assert.equal(isModelAllowedForAccount(account, 'glm-4.7'), true);
+    assert.equal(isModelAllowedForAccount(account, 'gemini-2.5-flash'), true);
+    assert.equal(isModelAllowedForAccount(account, 'claude-opus-4.6'), false);
+  });
+
+  it('blocks pro-only models even on a Pro account when not_entitled', () => {
+    const account = {
+      tier: 'pro',
+      userStatusLastFetched: Date.now(),
+      capabilities: {
+        'claude-opus-4.6': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'glm-4.7': { ok: false, reason: 'not_entitled', lastCheck: 1 },
+      },
+    };
+    assert.equal(isModelAllowedForAccount(account, 'glm-4.7'), false);
+  });
+
+  it('respects blocklist regardless of upstream entitlement', () => {
+    const account = {
+      tier: 'free',
+      blockedModels: ['glm-4.7'],
+      userStatusLastFetched: Date.now(),
+      capabilities: {
+        'glm-4.7': { ok: true, reason: 'user_status', lastCheck: 1 },
+      },
+    };
+    assert.equal(isModelAllowedForAccount(account, 'glm-4.7'), false);
+  });
+
+  it('falls back to tier list when GetUserStatus has not run', () => {
+    const account = { tier: 'free', capabilities: {} };
+    assert.equal(isModelAllowedForAccount(account, 'gemini-2.5-flash'), true);
+    assert.equal(isModelAllowedForAccount(account, 'glm-4.7'), false);
+  });
+
+  it('falls back to tier list for capabilities filled by canary success', () => {
+    const account = {
+      tier: 'free',
+      capabilities: {
+        'gemini-2.5-flash': { ok: true, reason: 'success', lastCheck: 1 },
+      },
+    };
+    assert.equal(isModelAllowedForAccount(account, 'gemini-2.5-flash'), true);
+  });
+
+  it('manual tier=pro override unlocks all models even with not_entitled caps', () => {
+    // Operator escape hatch: probe misclassified a Pro trial as free,
+    // GetUserStatus then wrote not_entitled into every premium model's
+    // capability slot. Operator manually sets tier=pro; that should
+    // restore Pro entitlement until GetUserStatus reruns and corrects
+    // capabilities itself.
+    const account = {
+      tier: 'pro',
+      tierManual: true,
+      userStatusLastFetched: Date.now(),
+      capabilities: {
+        'claude-opus-4.6': { ok: false, reason: 'not_entitled', lastCheck: 1 },
+        'glm-4.7': { ok: false, reason: 'not_entitled', lastCheck: 1 },
+      },
+    };
+    assert.equal(isModelAllowedForAccount(account, 'claude-opus-4.6'), true);
+    assert.equal(isModelAllowedForAccount(account, 'glm-4.7'), true);
+  });
+
+  it('every automatic tier writer is gated by tierManual (no clobber of #8 override)', () => {
+    // isModelAllowedForAccount trusts account.tier under tierManual, so a
+    // background writer that overwrites account.tier would silently defeat the
+    // operator escape hatch. Pin that all automatic `account.tier = ...` writes
+    // (refreshCredits planName inference, fetchUserStatus, probe restore,
+    // updateCapability/inferTier) consult tierManual first.
+    const AUTH = readFileSync(new URL('../../src/account-pool/auth.js', import.meta.url), 'utf8');
+    // The only unconditional `account.tier =` writes allowed are the manual
+    // setter (setAccountTier) itself. Count guarded vs total automatic writes.
+    assert.match(AUTH, /if \(!account\.tierManual\) account\.tier = status\.tierName/,
+      'fetchUserStatus must skip the tier write under tierManual');
+    assert.match(AUTH, /if \(status && !account\.tierManual\) account\.tier = status\.tierName/,
+      'probe tier restore must skip under tierManual');
+    assert.match(AUTH, /if \(!account\.tierManual\) \{[\s\S]*?account\.tier = 'pro'/,
+      'refreshCredits planName inference must be wrapped in a tierManual guard');
+    assert.match(AUTH, /if \(!account\.tierManual && !account\.userStatusLastFetched\) \{\s*\n\s*account\.tier = inferTier/,
+      'inferTier write must stay gated by tierManual');
+  });
+});
+
+describe('getAvailableModelsForAccount — uses authoritative allowlist post-status', () => {
+  it('returns only user_status-allowed enum-keyed models after GetUserStatus', () => {
+    const account = {
+      tier: 'free',
+      userStatusLastFetched: Date.now(),
+      capabilities: {
+        'gemini-2.5-flash': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'glm-4.7': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'kimi-k2': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'swe-1.5': { ok: true, reason: 'user_status', lastCheck: 1 },
+        'claude-opus-4.6': { ok: false, reason: 'not_entitled', lastCheck: 1 },
+        'gpt-4.1-mini': { ok: false, reason: 'not_entitled', lastCheck: 1 },
+      },
+    };
+    const got = getAvailableModelsForAccount(account);
+    assert.ok(got.includes('gemini-2.5-flash'));
+    assert.ok(got.includes('glm-4.7'));
+    assert.ok(got.includes('kimi-k2'));
+    assert.ok(got.includes('swe-1.5'));
+    assert.ok(!got.includes('claude-opus-4.6'));
+    assert.ok(!got.includes('gpt-4.1-mini'));
+  });
+
+  it('falls back to tier list before GetUserStatus runs', () => {
+    const account = { tier: 'free' };
+    const got = getAvailableModelsForAccount(account);
+    assert.ok(got.includes('gemini-2.5-flash'));
+    assert.ok(!got.includes('glm-4.7'));
+  });
+});

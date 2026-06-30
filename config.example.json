@@ -1,0 +1,21 @@
+{
+  "_comment": "Optional config file: a flat JSON fallback BELOW environment variables. Copy to config.json (gitignored) and fill in. Precedence: CLI flags > real ENV > .env > config.json > built-in defaults. Keys mirror .env.example exactly. The server refuses to start with no auth source (CODEIUM_API_KEY / CODEIUM_AUTH_TOKEN / CODEIUM_EMAIL+CODEIUM_PASSWORD / a non-empty accounts.json) unless WINDSURFAPI_ALLOW_NO_AUTH=1.",
+
+  "PORT": "3003",
+  "HOST": "0.0.0.0",
+  "API_KEY": "",
+  "DATA_DIR": "",
+
+  "CODEIUM_API_KEY": "",
+  "CODEIUM_AUTH_TOKEN": "",
+
+  "LS_BINARY_PATH": "/opt/windsurf/language_server_linux_x64",
+  "LS_PORT": "42100",
+
+  "DASHBOARD_PASSWORD": "",
+
+  "DEFAULT_MODEL": "claude-4.5-sonnet-thinking",
+  "MAX_TOKENS": "8192",
+  "LOG_LEVEL": "info",
+  "ALLOW_PRIVATE_PROXY_HOSTS": ""
+}

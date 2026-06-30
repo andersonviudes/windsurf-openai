@@ -33,8 +33,31 @@ function loadEnv() {
   }
 }
 
+// Load config.json as a fallback *below* .env / real ENV (zero dependencies).
+// Flat JSON keyed by the same names as the env vars: { "PORT": 3003, ... }.
+// Only fills keys not already in process.env, so precedence stays
+// flags > real ENV > .env > config.json > built-in defaults.
+export function loadConfigFile(cfgPath = resolve(ROOT, 'config.json')) {
+  if (!existsSync(cfgPath)) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+  } catch (e) {
+    // log isn't built yet here; warn directly so a typo doesn't crash boot.
+    console.warn(`[WARN] config.json: failed to parse ${cfgPath}: ${e.message}`);
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+  for (const [key, value] of Object.entries(parsed)) {
+    if (key.startsWith('_')) continue; // _-prefixed keys are comments/metadata
+    if (value == null) continue;
+    if (!process.env[key]) process.env[key] = String(value);
+  }
+}
+
 if (process.env.WINDSURFAPI_SKIP_DOTENV !== '1') {
   loadEnv();
+  loadConfigFile();
 }
 
 // `sharedDataDir` is the cluster-shared root: a single accounts.json lives
@@ -109,6 +132,26 @@ export const config = {
   // Proxy testing
   allowPrivateProxyHosts: process.env.ALLOW_PRIVATE_PROXY_HOSTS === '1',
 };
+
+// True when at least one Windsurf auth source is configured: env / config.json
+// credentials, or a non-empty accounts.json in the shared data dir. The server
+// boot uses this to fail fast instead of starting with no way to authenticate.
+// Override with WINDSURFAPI_ALLOW_NO_AUTH=1 (dashboard-first deployments that
+// add accounts in the UI after boot).
+export function requireAuthConfigured() {
+  if (config.codeiumApiKey || config.codeiumAuthToken ||
+      (config.codeiumEmail && config.codeiumPassword)) {
+    return true;
+  }
+  try {
+    const accountsPath = join(sharedDataDir, 'accounts.json');
+    if (existsSync(accountsPath)) {
+      const parsed = JSON.parse(readFileSync(accountsPath, 'utf-8'));
+      if (Array.isArray(parsed) && parsed.length > 0) return true;
+    }
+  } catch {}
+  return false;
+}
 
 const levels = { debug: 0, info: 1, warn: 2, error: 3 };
 const currentLevel = levels[config.logLevel] ?? 1;

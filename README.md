@@ -92,6 +92,34 @@ Configure via environment variables (or `.env`). The common ones:
 
 See [`.env.example`](.env.example) for the full, annotated list (proxy, account pool, LS pool tuning, lab/experimental flags).
 
+### Config file (fallback below ENV)
+
+Instead of (or alongside) environment variables, you can drop a `config.json` next to the app — a
+flat JSON file keyed by the same names as the env vars. It is a **fallback**: anything already set
+in the environment wins, and the file only fills what's missing. Precedence is:
+
+```
+CLI flags  >  real ENV  >  .env  >  config.json  >  built-in defaults
+```
+
+```json
+{
+  "PORT": "3003",
+  "API_KEY": "sk-...",
+  "LS_BINARY_PATH": "/opt/windsurf/language_server_linux_x64",
+  "CODEIUM_AUTH_TOKEN": "..."
+}
+```
+
+Copy [`config.example.json`](config.example.json) to `config.json` (it's gitignored — it holds
+secrets). `windsurf-api install` writes both `.env` and `config.json` for you. Keys prefixed with
+`_` are treated as comments and ignored.
+
+**Required to boot:** the server refuses to start unless at least one auth source is configured —
+`CODEIUM_API_KEY`, `CODEIUM_AUTH_TOKEN`, `CODEIUM_EMAIL` + `CODEIUM_PASSWORD`, or a non-empty
+`accounts.json`. Set `WINDSURFAPI_ALLOW_NO_AUTH=1` to start empty and add accounts later from the
+dashboard.
+
 ## Dashboard
 
 `http://YOUR_IP:3003/dashboard` — account management, subscription/balance detection, model whitelist/blacklist, per-account proxies, live logs, and latency/usage stats.

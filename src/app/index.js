@@ -3,7 +3,7 @@ import '../core/logger.js';
 import { initAuth, isAuthenticated, saveAccountsSync } from '../account-pool/auth.js';
 import { configureLanguageServer, startLanguageServer, waitForReady, isLanguageServerRunning, stopLanguageServer, stopLanguageServerAndWait, cleanupOrphanLanguageServers, shouldPrewarmDefaultLs } from '../language-server/langserver.js';
 import { startServer } from './server.js';
-import { config, log } from '../core/config.js';
+import { config, log, requireAuthConfigured } from '../core/config.js';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { execSync } from 'child_process';
@@ -78,6 +78,21 @@ async function main() {
 `;
   console.log(banner);
   console.log(`  OpenAI-compatible proxy for Windsurf — by dwgx1337\n`);
+
+  // Fail fast when no auth source is configured at all — env/config.json creds
+  // or a non-empty accounts.json. Starting with zero auth means every chat
+  // request 401s, so refuse to boot (before spinning up the heavy LS) unless
+  // explicitly allowed. Dashboard-first deployments that add accounts in the UI
+  // after boot set WINDSURFAPI_ALLOW_NO_AUTH=1.
+  if (!requireAuthConfigured() && process.env.WINDSURFAPI_ALLOW_NO_AUTH !== '1') {
+    log.error('No auth configured — refusing to start. Provide at least one of:');
+    log.error('  - CODEIUM_API_KEY                (env or config.json)');
+    log.error('  - CODEIUM_AUTH_TOKEN             (env or config.json)');
+    log.error('  - CODEIUM_EMAIL + CODEIUM_PASSWORD');
+    log.error('  - an account in accounts.json    (windsurf-api login --token <t>)');
+    log.error('Or set WINDSURFAPI_ALLOW_NO_AUTH=1 to start empty and add accounts in the dashboard.');
+    process.exit(1);
+  }
 
   // Start language server binary.
   // Auto-install if missing — users repeatedly miss the manual install step
@@ -160,7 +175,9 @@ async function main() {
   await initAuth();
 
   if (!isAuthenticated()) {
-    log.warn('No accounts configured. Add via:');
+    // Auth was configured (we passed requireAuthConfigured above) but no
+    // account is active yet — credentials may be invalid or still validating.
+    log.warn('No active account yet — credentials may be invalid or still validating. Add more via:');
     log.warn('  POST /auth/login {"token":"..."}');
     log.warn('  POST /auth/login {"api_key":"..."}');
   }

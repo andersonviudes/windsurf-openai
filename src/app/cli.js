@@ -167,27 +167,38 @@ async function cmdInstall(rest) {
   const lsBinary = values['ls-binary'] || (isWindows ? '' : defaultLsBinaryPath());
   const dataDir = values['data-dir'] || '';
   const envPath = join(ROOT, '.env');
+  const configPath = join(ROOT, 'config.json');
+
+  const settings = {
+    PORT: values.port || '3003',
+    HOST: values.host || '',
+    API_KEY: values['api-key'] || '',
+    DATA_DIR: dataDir,
+    DEFAULT_MODEL: values['default-model'] || 'claude-4.5-sonnet-thinking',
+    MAX_TOKENS: values['max-tokens'] || '8192',
+    LOG_LEVEL: values['log-level'] || 'info',
+    LS_BINARY_PATH: lsBinary,
+    LS_PORT: values['ls-port'] || '42100',
+    DASHBOARD_PASSWORD: values['dashboard-password'] || '',
+    ALLOW_PRIVATE_PROXY_HOSTS: '',
+  };
 
   // 1. .env
   if (existsSync(envPath) && !values.force) {
     console.log(`.env already exists at ${envPath} — skipping (use --force to overwrite)`);
   } else {
-    const env = {
-      PORT: values.port || '3003',
-      HOST: values.host || '',
-      API_KEY: values['api-key'] || '',
-      DATA_DIR: dataDir,
-      DEFAULT_MODEL: values['default-model'] || 'claude-4.5-sonnet-thinking',
-      MAX_TOKENS: values['max-tokens'] || '8192',
-      LOG_LEVEL: values['log-level'] || 'info',
-      LS_BINARY_PATH: lsBinary,
-      LS_PORT: values['ls-port'] || '42100',
-      DASHBOARD_PASSWORD: values['dashboard-password'] || '',
-      ALLOW_PRIVATE_PROXY_HOSTS: '',
-    };
-    const body = Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
+    const body = Object.entries(settings).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
     writeFileSync(envPath, body);
     console.log(`Wrote ${envPath}`);
+  }
+
+  // 1b. config.json — same settings as a flat JSON fallback below ENV/.env.
+  // ENV (and .env) still win; this file fills any keys they don't set.
+  if (existsSync(configPath) && !values.force) {
+    console.log(`config.json already exists at ${configPath} — skipping (use --force to overwrite)`);
+  } else {
+    writeFileSync(configPath, JSON.stringify(settings, null, 2) + '\n');
+    console.log(`Wrote ${configPath}`);
   }
 
   // 2. directories (LS binary dir, data dir, workspace)

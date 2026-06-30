@@ -2,6 +2,7 @@ node_modules/
 dist/
 RELEASE_NOTES.md
 .env
+config.json
 accounts.json
 model-access.json
 sshpass.sh

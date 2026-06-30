@@ -120,19 +120,19 @@ export function isModelAllowed(modelId) {
     for (const sib of siblingsForAllowlist(modelId)) {
       if (_config.list.includes(sib)) return { allowed: true };
     }
-    return { allowed: false, reason: `模型 ${modelId} 不在允許清單中`, defaultModel: getDefaultModel() };
+    return { allowed: false, reason: `Model ${modelId} is not in the allowlist`, defaultModel: getDefaultModel() };
   }
 
   if (_config.mode === 'blocklist') {
     if (_config.list.includes(modelId)) {
-      return { allowed: false, reason: `模型 ${modelId} 已被封鎖`, defaultModel: getDefaultModel() };
+      return { allowed: false, reason: `Model ${modelId} is blocked`, defaultModel: getDefaultModel() };
     }
     // Same inheritance for blocklist: blocking the base also blocks
     // the -thinking variant, so an operator who put `claude-opus-4.6`
     // on the blocklist isn't surprised by `-thinking` slipping past.
     for (const sib of siblingsForAllowlist(modelId)) {
       if (_config.list.includes(sib)) {
-        return { allowed: false, reason: `模型 ${modelId} 已被封鎖`, defaultModel: getDefaultModel() };
+        return { allowed: false, reason: `Model ${modelId} is blocked`, defaultModel: getDefaultModel() };
       }
     }
     return { allowed: true };

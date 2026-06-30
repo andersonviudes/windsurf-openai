@@ -164,7 +164,7 @@ export function tryExtractPdf(base64Data) {
   } catch (e) {
     log.warn(`PDF extraction failed: ${e.message}`);
     if (/exceeds safety limit|maxOutputLength|too large|Buffer larger/i.test(e.message) || e.code === 'ERR_BUFFER_TOO_LARGE') {
-      return { text: 'PDF 内容无法提取', pageCount: 0 };
+      return { text: 'Unable to extract PDF content', pageCount: 0 };
     }
     return null;
   }

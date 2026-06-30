@@ -1,0 +1,134 @@
+name: Publish
+
+# Runs after the Release workflow finishes (see .github/workflows/release.yml):
+# builds & pushes the Docker image to GHCR and publishes the package to npmjs.
+#
+# Chained via `workflow_run` rather than `release: published` on purpose: a
+# Release created by the default GITHUB_TOKEN does not fire the `release` event
+# for other workflows (GitHub's no-recursion rule), so `release: published`
+# would silently never run without a PAT. `workflow_run` fires on the workflow
+# completing regardless of token, needing no extra secret.
+#
+# The Release runs via workflow_dispatch *on main* (not a tag), so
+# github.event.workflow_run.head_branch is `main`. We therefore check out main
+# HEAD — which is the bump commit/tag the Release just pushed — and derive the
+# version from package.json instead of from the workflow_run metadata.
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+jobs:
+  docker:
+    name: Docker Build & Push
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Build metadata
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_BRANCH=v$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "COMMIT_DATE=$(git log -1 --pretty=%cI)" >> "$GITHUB_ENV"
+          {
+            echo "COMMIT_MESSAGE<<EOF"
+            git log -1 --pretty=%s
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # github.repository (= dwgx/WindsurfAPI) lowercases to "windsurfapi"
+          # without the hyphen the package.json npm name uses. Hardcode the
+          # kebab form so the image name stays "windsurf-api".
+          images: ghcr.io/${{ github.repository_owner }}/windsurf-api
+          tags: |
+            # Semantic bumps are always stable releases -> always tag latest.
+            type=raw,value=latest
+            # 0.2.0
+            type=semver,pattern={{version}},value=v${{ env.VERSION }}
+            # 0.2
+            type=semver,pattern={{major}}.{{minor}},value=v${{ env.VERSION }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_VERSION=${{ env.VERSION }}
+            BUILD_COMMIT=${{ env.BUILD_COMMIT }}
+            BUILD_COMMIT_MESSAGE=${{ env.COMMIT_MESSAGE }}
+            BUILD_COMMIT_DATE=${{ env.COMMIT_DATE }}
+            BUILD_BRANCH=${{ env.BUILD_BRANCH }}
+
+      - name: Summary
+        run: |
+          echo "## Docker Image Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tags:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '${{ steps.meta.outputs.tags }}' | tr ',' '\n' | sed 's/^/- `/' | sed 's/$/`/' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Platform:** \`linux/amd64\`" >> "$GITHUB_STEP_SUMMARY"
+
+  npm:
+    name: npm Publish
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0          # need tags for the version==tag guard
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Guard: the vX.Y.Z tag for this package.json version must exist, so we
+      # never publish a version the Release workflow didn't actually tag.
+      - name: Verify tag matches package.json version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          git rev-parse "v$VERSION" >/dev/null 2>&1 || { echo "tag v$VERSION not found"; exit 1; }
+          echo "Publishing windsurf-api@$VERSION"
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

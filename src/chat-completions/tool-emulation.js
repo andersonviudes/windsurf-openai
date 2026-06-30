@@ -266,8 +266,8 @@ export function pickToolDialect(modelKey, provider, route = null) {
 
 // Serialize a stored tool_call back into the dialect the model originally
 // emitted, so model.see(history) matches model.emit(now). See issue #86
-// "上下文会丢" for the user-visible symptom of the OpenAI-JSON-XML serializer
-// being used unconditionally for GLM/Kimi history.
+// ("context gets lost") for the user-visible symptom of the OpenAI-JSON-XML
+// serializer being used unconditionally for GLM/Kimi history.
 function formatAssistantToolCallForDialect(name, parsedArgs, dialect, _id) {
   if (dialect === 'glm47') {
     const argEntries = Object.entries(parsedArgs && typeof parsedArgs === 'object' ? parsedArgs : {});

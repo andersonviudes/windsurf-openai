@@ -87,7 +87,8 @@ async function main() {
   if (!existsSync(binaryPath) && process.platform === 'win32') {
     log.warn('Windows detected: the Language Server binary is Linux/macOS only.');
     log.warn('Options: (1) Use Docker (see docker-compose.yml), (2) Use WSL2, or');
-    log.warn('(3) Point LS_BINARY_PATH to a Windsurf desktop app language_server binary.');
+    log.warn('(3) Point LS_BINARY_PATH to a Devin Desktop / Windsurf language_server binary, e.g.');
+    log.warn('    C:\\Program Files\\Devin\\resources\\app\\extensions\\windsurf\\bin\\language_server_windows_x64.exe');
   }
   if (!existsSync(binaryPath) && process.platform !== 'win32') {
     const scriptPath = (() => {

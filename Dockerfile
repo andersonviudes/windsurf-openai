@@ -29,10 +29,10 @@ COPY scripts/native-bridge-smoke.mjs ./scripts/native-bridge-smoke.mjs
 COPY scripts/special-agent-smoke.mjs ./scripts/special-agent-smoke.mjs
 COPY scripts/lsp-capacity-matrix.mjs ./scripts/lsp-capacity-matrix.mjs
 COPY scripts/web-search-direct-probe.mjs ./scripts/web-search-direct-probe.mjs
-COPY install-ls.sh setup.sh .env.example ./
+COPY install-ls.sh .env.example ./
 
-RUN sed -i 's/\r$//' install-ls.sh setup.sh \
-    && chmod +x install-ls.sh setup.sh \
+RUN sed -i 's/\r$//' install-ls.sh \
+    && chmod +x install-ls.sh \
     && mkdir -p /data /opt/windsurf/data/db /tmp/windsurf-workspace
 
 EXPOSE 3003

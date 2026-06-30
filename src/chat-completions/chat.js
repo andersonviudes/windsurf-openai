@@ -125,9 +125,9 @@ function upstreamDeadlineExceededMessage(model) {
 
 function upstreamTransientErrorMessage(model, triedCount, reason = 'internal_error') {
   const detail = reason === 'cascade_transport'
-    ? 'Cascade/语言服务器 HTTP/2 流被取消'
+    ? 'Cascade/language-server HTTP/2 stream was canceled'
     : 'internal_error';
-  return `${model} 上游 Windsurf Cascade 服务瞬态故障：已在 ${triedCount} 个账号上重试都收到 ${detail}。这是上游或本地语言服务器会话的瞬时问题，建议 30-60 秒后重试；若连续出现，请重启语言服务器。`;
+  return `${model}: transient failure in the upstream Windsurf Cascade service — retried across ${triedCount} account(s) and got ${detail} each time. This is a transient issue with the upstream or local language-server session; wait 30-60s and retry, and if it persists, restart the language server.`;
 }
 
 export function buildToolRoutingPlan(tools, { useCascade = false, modelKey = '', model = '', provider = null, route = 'chat', callerKey = '' } = {}) {
@@ -781,7 +781,7 @@ function strictReuseRetryMs(availability) {
 }
 
 function strictReuseMessage(model, retryMs, reason = 'temporarily unavailable') {
-  return `${model} 上下文复用绑定账号暂不可用（${reason}）。为避免切换账号导致上下文丢失，请 ${Math.ceil(retryMs / 1000)} 秒后重试`;
+  return `${model}: the account bound for context reuse is temporarily unavailable (${reason}). To avoid losing context by switching accounts, retry in ${Math.ceil(retryMs / 1000)}s`;
 }
 
 function recentUserText(messages) {
@@ -2051,7 +2051,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
       status: 410,
       body: {
         error: {
-          message: `模型 ${displayModel} 已被 Windsurf 上游废弃，不再可用。建议切换到当前可用模型（如 gemini-2.5-flash、claude-haiku-4-5、claude-sonnet-4-6）。`,
+          message: `Model ${displayModel} has been deprecated by Windsurf upstream and is no longer available. Switch to a currently available model (e.g. gemini-2.5-flash, claude-haiku-4-5, claude-sonnet-4-6).`,
           type: 'model_deprecated',
         },
       },
@@ -2075,7 +2075,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
       headers: { 'Retry-After': String(retryAfterSec) },
       body: {
         error: {
-          message: `账号池处于配额低水位（drought mode）：所有账号本周配额都低于 ${summary.threshold}%，已暂时屏蔽 premium 模型 ${displayModel}。请改用免费层模型（${freeList}…），或等周配额重置。可在 Dashboard 实验性面板关闭 droughtRestrictPremium 强制下发（会消耗最后一点配额）。`,
+          message: `The account pool is in drought mode: every account's weekly quota is below ${summary.threshold}%, so the premium model ${displayModel} is temporarily blocked. Use a free-tier model (${freeList}…) or wait for the weekly quota to reset. You can disable droughtRestrictPremium in the Dashboard experimental panel to force it through (this consumes the last of the quota).`,
           type: 'drought_mode',
           drought: {
             lowestWeeklyPercent: summary.lowestWeeklyPercent,
@@ -2101,7 +2101,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
   // shouldn't fire for that case. If we DO end up here with un-probed
   // accounts, surface a different message hinting at probe-pending state
   // rather than the misleading "model not entitled" — that error shaped
-  // user reports of "获取不到模型" / "添加账号后不能调用".
+  // user reports of "can't get any models" / "can't call anything after adding an account".
   const accounts = getAccountList();
   const anyEligible = accounts.some(a =>
     a.status === 'active' && (a.availableModels || []).includes(routingModelKey)
@@ -2111,7 +2111,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
     // account — never one that's already been probed. An account can have a
     // resolved tier (e.g. 'expired') from the canary sweep while GetUserStatus
     // still returned empty (userStatusLastFetched=0); keying solely off
-    // userStatusLastFetched mislabeled those as "账号刚添加还未完成 tier 检测",
+    // userStatusLastFetched mislabeled those as "account just added, tier detection not finished",
     // sending users to re-probe when the real cause is plan/tier. Treat an
     // account as probed once lastProbed>0, GetUserStatus landed, or tier resolved.
     const hasUnprobedActive = accounts.some(a => a.status === 'active' && !accountIsProbed(a));
@@ -2128,17 +2128,17 @@ async function _handleChatCompletionsInner(body, context = {}) {
     }
     const availableInPool = [...counter.entries()].sort(([, a], [, b]) => b - a).slice(0, 8).map(([m]) => m);
     const remediation = hasUnprobedActive
-      ? '账号刚添加，等 10-30 秒 tier 检测完成后重试，或 dashboard 手动 Probe。'
+      ? 'Account just added — wait 10-30s for tier detection to finish and retry, or Probe manually from the dashboard.'
       : availableInPool.length
-        ? `账号池里能用的模型：${availableInPool.join(', ')}。换其中一个，或加一个有 ${displayModel} 订阅权限的账号。`
-        : '账号池里没有任何可用模型 — 检查账号是否被封禁或全部限流。';
+        ? `Models available in the pool: ${availableInPool.join(', ')}. Switch to one of them, or add an account entitled to ${displayModel}.`
+        : 'No usable models in the account pool — check whether accounts are banned or all rate-limited.';
     return {
       status: 403,
       body: {
         error: {
           message: hasUnprobedActive
-            ? `模型 ${displayModel} 暂不可用：账号刚添加还未完成 tier 检测，请稍候 10-30 秒后重试，或在 dashboard 手动点 Probe`
-            : `模型 ${displayModel} 在当前账号池中不可用（未订阅或已被封禁）`,
+            ? `Model ${displayModel} is temporarily unavailable: an account was just added and tier detection hasn't finished — retry in 10-30s, or click Probe in the dashboard`
+            : `Model ${displayModel} is not available in the current account pool (not subscribed or banned)`,
           type: hasUnprobedActive ? 'probe_pending' : 'model_not_entitled',
           remediation,
           available_in_pool: availableInPool,
@@ -2302,13 +2302,13 @@ async function _handleChatCompletionsInner(body, context = {}) {
           const tempUnavail = isAllTemporarilyUnavailable(routingModelKey);
           const rateLimited = isAllRateLimited(routingModelKey);
           const reason = tempUnavail.allUnavailable
-            ? `所有可用账号暂时不可用，请 ${Math.ceil(tempUnavail.retryAfterMs / 1000)} 秒后重试`
+            ? `All available accounts are temporarily unavailable; retry in ${Math.ceil(tempUnavail.retryAfterMs / 1000)}s`
             : rateLimited.allLimited
-            ? `所有可用账号均已达速率限制，请 ${Math.ceil(rateLimited.retryAfterMs / 1000)} 秒后重试`
-            : `${Math.ceil(QUEUE_MAX_WAIT_MS / 1000)} 秒内没有账号变为可用 — 账号可能被速率限制或对当前模型无权限`;
+            ? `All available accounts have hit their rate limit; retry in ${Math.ceil(rateLimited.retryAfterMs / 1000)}s`
+            : `No account became available within ${Math.ceil(QUEUE_MAX_WAIT_MS / 1000)}s — accounts may be rate-limited or not entitled to this model`;
           lastErr = {
             status: (tempUnavail.allUnavailable || rateLimited.allLimited) ? 429 : 503,
-            body: { error: { message: `${displayModel} 账号队列超时: ${reason}`, type: (tempUnavail.allUnavailable || rateLimited.allLimited) ? 'rate_limit_exceeded' : 'pool_exhausted' } },
+            body: { error: { message: `${displayModel} account-queue timeout: ${reason}`, type: (tempUnavail.allUnavailable || rateLimited.allLimited) ? 'rate_limit_exceeded' : 'pool_exhausted' } },
           };
           // v2.0.84 (#118 0a00) — pool-wide rate limit on a high-effort
           // variant (`-max` / `-xhigh`)? Suggest the same-base lower-
@@ -2318,7 +2318,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
             const fb = pickRateLimitFallback(routingModelKey || displayModel);
             if (fb) {
               lastErr.body.error.fallback_model = fb;
-              lastErr.body.error.remediation = `池里所有账号在 ${displayModel} 上都已限流。这个 effort 变体上游限频严（每账号几十分钟滑窗），建议改用 ${fb}（同基础模型，effort 等级更低，daily quota 更宽松）。`;
+              lastErr.body.error.remediation = `Every account in the pool is rate-limited on ${displayModel}. This effort variant is heavily throttled upstream (a sliding window of tens of minutes per account); switch to ${fb} (same base model, lower effort tier, more generous daily quota).`;
             }
           }
         }
@@ -2538,7 +2538,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
       headers: { 'Retry-After': String(retryAfterSec) },
       body: {
         error: {
-          message: `${displayModel} 所有账号暂时不可用，请 ${retryAfterSec} 秒后重试`,
+          message: `${displayModel}: all accounts are temporarily unavailable; retry in ${retryAfterSec}s`,
           type: 'rate_limit_exceeded',
           retry_after_ms: temporaryUnavailable.retryAfterMs,
         },
@@ -2553,7 +2553,7 @@ async function _handleChatCompletionsInner(body, context = {}) {
         log.info(`Chat[${reqId}]: restored checked-out cascade after rate limit`);
       }
       const retryAfterSec = Math.ceil(rl.retryAfterMs / 1000);
-      return { status: 429, headers: { 'Retry-After': String(retryAfterSec) }, body: { error: { message: `${displayModel} 所有账号均已达速率限制，请 ${retryAfterSec} 秒后重试`, type: 'rate_limit_exceeded', retry_after_ms: rl.retryAfterMs } } };
+      return { status: 429, headers: { 'Retry-After': String(retryAfterSec) }, body: { error: { message: `${displayModel}: all accounts have hit their rate limit; retry in ${retryAfterSec}s`, type: 'rate_limit_exceeded', retry_after_ms: rl.retryAfterMs } } };
     }
   }
   if (!reuseEntryDead && checkedOutReuseEntry && fpBefore) {
@@ -2798,8 +2798,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
                     `Your previous response described intending to call \`${intendedTool}\` but didn't emit the tool-call protocol block. ` +
                     `Re-emit the call now using the EXACT protocol format defined at the top of this conversation. ` +
                     `Do NOT narrate. Do NOT describe. Just the protocol block. ` +
-                    `Provide a concrete argument value (the literal command / file path / query) — never placeholders like "command" or "the file". ` +
-                    `\n\n你刚才描述了想用 \`${intendedTool}\` 工具但没按协议格式 emit。请直接重新 emit 协议块，不要 narrate。给具体的 argument 字面值（如 ls / /etc/hostname / "echo hi"），不要写"命令" / "文件" 这种占位词。` },
+                    `Provide a concrete argument value (the literal command / file path / query) — never placeholders like "command" or "the file".` },
                 ];
                 log.info(`Chat[non-stream]: NLU retry — first pass narrate-only, retrying with correction (tool=${intendedTool} markers=${markers.join(',') || 'none'})`);
                 const retryChunks = await client.cascadeChat(correctionMessages, modelEnum, modelUid, {
@@ -2985,7 +2984,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
         status: 502,
         body: {
           error: {
-            message: `${model} 在 Cascade 上游当前不可用（返回空响应）。请换用 claude-sonnet-4.6、gemini-2.5-flash 或 glm-4.7。`,
+            message: `${model} is currently unavailable on the Cascade upstream (returned an empty response). Switch to claude-sonnet-4.6, gemini-2.5-flash, or glm-4.7.`,
             type: 'upstream_model_unavailable',
           },
         },
@@ -3078,7 +3077,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
         status: 451,
         body: {
           error: {
-            message: `请求被上游 policy 拦截 (${model})。这不是账号问题 — 切账号也救不回来；请改 prompt 或换模型再试。原始上游消息：${err.message.slice(0, 200)}`,
+            message: `Request blocked by upstream policy (${model}). This is not an account problem — switching accounts won't help; change the prompt or try a different model. Original upstream message: ${err.message.slice(0, 200)}`,
             type: 'policy_blocked',
           },
         },
@@ -3091,7 +3090,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
       return {
         status: 429,
         headers: { 'Retry-After': String(Math.ceil(retryMs / 1000)) },
-        body: { error: { message: `${model} 已达速率限制，请稍后重试`, type: 'rate_limit_exceeded', retry_after_ms: retryMs } },
+        body: { error: { message: `${model} has hit its rate limit; try again later`, type: 'rate_limit_exceeded', retry_after_ms: retryMs } },
       };
     }
     // LS crash on oversized payload — gRPC surfaces this as "pending stream
@@ -3107,7 +3106,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
         return {
           status: 413,
           body: { error: {
-            message: `请求过大（${Math.round(chars / 1024)}KB 输入）导致语言服务器中断。请尝试：1) 分块发送；2) 先用摘要/summarization 预处理 PDF；3) 减少历史轮数`,
+            message: `Request too large (${Math.round(chars / 1024)}KB of input) crashed the language server. Try: 1) sending in chunks; 2) summarizing the PDF first; 3) reducing the number of history turns`,
             type: 'payload_too_large',
           } },
         };
@@ -3568,12 +3567,12 @@ function streamResponse(id, created, model, modelKey, provider, messages, cascad
                 const tempUnavail = isAllTemporarilyUnavailable(modelKey);
                 const rateLimited = isAllRateLimited(modelKey);
                 const reason = tempUnavail.allUnavailable
-                  ? `所有可用账号暂时不可用，请 ${Math.ceil(tempUnavail.retryAfterMs / 1000)} 秒后重试`
+                  ? `All available accounts are temporarily unavailable; retry in ${Math.ceil(tempUnavail.retryAfterMs / 1000)}s`
                   : rateLimited.allLimited
-                  ? `所有可用账号均已达速率限制，请 ${Math.ceil(rateLimited.retryAfterMs / 1000)} 秒后重试`
-                  : `${Math.ceil(QUEUE_MAX_WAIT_MS / 1000)} 秒内没有账号变为可用 — 账号可能被速率限制或对当前模型无权限`;
+                  ? `All available accounts have hit their rate limit; retry in ${Math.ceil(rateLimited.retryAfterMs / 1000)}s`
+                  : `No account became available within ${Math.ceil(QUEUE_MAX_WAIT_MS / 1000)}s — accounts may be rate-limited or not entitled to this model`;
                 lastErr = Object.assign(
-                  new Error(`${model} 账号队列超时: ${reason}`),
+                  new Error(`${model} account-queue timeout: ${reason}`),
                   { type: (tempUnavail.allUnavailable || rateLimited.allLimited) ? 'rate_limit_exceeded' : 'pool_exhausted' }
                 );
                 // v2.0.84 (#118) — same fallback hint logic as the
@@ -3583,7 +3582,7 @@ function streamResponse(id, created, model, modelKey, provider, messages, cascad
                   const fb = pickRateLimitFallback(modelKey || model);
                   if (fb) {
                     lastErr.fallback_model = fb;
-                    lastErr.remediation = `池里所有账号在 ${model} 上都已限流。这个 effort 变体上游限频严，建议改用 ${fb}（同基础模型，effort 等级更低）。`;
+                    lastErr.remediation = `Every account in the pool is rate-limited on ${model}. This effort variant is heavily throttled upstream; switch to ${fb} (same base model, lower effort tier).`;
                   }
                 }
               }
@@ -4047,9 +4046,9 @@ function streamResponse(id, created, model, modelKey, provider, messages, cascad
             : poolExhausted
             ? sanitizeText(lastErr?.message || 'language server pool exhausted')
             : temporaryUnavailable.allUnavailable
-            ? `${model} 所有账号暂时不可用，请 ${Math.ceil(temporaryUnavailable.retryAfterMs / 1000)} 秒后重试`
+            ? `${model}: all accounts are temporarily unavailable; retry in ${Math.ceil(temporaryUnavailable.retryAfterMs / 1000)}s`
             : rl.allLimited
-            ? `${model} 所有账号均已达速率限制，请 ${Math.ceil(rl.retryAfterMs / 1000)} 秒后重试`
+            ? `${model}: all accounts have hit their rate limit; retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`
             : sanitizeText(lastErr?.message || 'no accounts');
           if (allInternal) {
             log.error(`Chat[${reqId}] stream: ${tried.length}/${tried.length} accounts hit upstream transient error — surfacing upstream_transient_error`);

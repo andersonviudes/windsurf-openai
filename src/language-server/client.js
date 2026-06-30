@@ -265,7 +265,7 @@ const CASCADE_TIMEOUTS = {
   // pause emission for >25s mid-reasoning even though the planner is
   // actively working — Claude 4.5/4.6/4.7 -thinking variants do this on
   // hard math / multi-file analysis. Old behaviour killed those
-  // cascades at 25s of silence, surfacing as "思考 200 多秒之后会中断".
+  // cascades at 25s of silence, surfacing as "gets interrupted after thinking for 200+ seconds".
   // Once we've seen ANY thinking emission this turn, fall back to a
   // longer ceiling (default 120s) so deep-think windows survive natural
   // pauses. Text-mode requests (no thinking) keep the strict 45s.

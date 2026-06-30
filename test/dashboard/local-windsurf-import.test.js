@@ -56,6 +56,11 @@ describe('getCandidateStateDbPaths', () => {
     assert.ok(joined.includes('Windsurf - Next') || joined.includes('Windsurf-Next'), 'should include Windsurf Next flavor');
   });
 
+  it('includes the Devin Desktop rebrand flavor', () => {
+    const paths = getCandidateStateDbPaths();
+    assert.ok(paths.some(p => p.includes('Devin')), 'should include a Devin-branded path (post-acquisition rebrand)');
+  });
+
   it('uses platform-appropriate base directories', () => {
     const paths = getCandidateStateDbPaths();
     if (process.platform === 'darwin') {
@@ -128,6 +133,16 @@ describe('extractFromStateDb (fixture)', { skip: await sqliteUnavailable() }, ()
     assert.equal(session.apiKey, 'sk-ws-02-secondkey0987654321');
   });
 
+  it('extracts a devinAuthStatus entry (Devin Desktop rebrand)', async () => {
+    const { extractFromStateDb } = await import('../../src/dashboard/local-windsurf.js');
+    const fixturePath = await buildFixtureDb();
+    const r = await extractFromStateDb(fixturePath);
+    assert.equal(r.ok, true);
+    const devin = r.accounts.find(a => a.email === 'devin@example.com');
+    assert.ok(devin, 'account from devinAuthStatus must be present');
+    assert.equal(devin.apiKey, 'sk-dv-03-devinkey5678901234abcd');
+  });
+
   it('skips unrelated rows and returns deduped accounts', async () => {
     const { extractFromStateDb } = await import('../../src/dashboard/local-windsurf.js');
     const fixturePath = await buildFixtureDb();
@@ -166,6 +181,12 @@ async function buildFixtureDb() {
     accessToken: 'sk-ws-02-secondkey0987654321',
     account: { email: 'second@example.com', name: 'Second' },
   }]));
+  stmt.run('devinAuthStatus', JSON.stringify({
+    apiKey: 'sk-dv-03-devinkey5678901234abcd',
+    email: 'devin@example.com',
+    name: 'Devin User',
+    apiServerUrl: 'https://server.codeium.com',
+  }));
   stmt.run('something-else', 'unrelated value');
   db.close();
   return fixturePath;

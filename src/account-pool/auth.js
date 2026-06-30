@@ -2049,15 +2049,11 @@ export function emitNoAuthWarnings(bindHost = '0.0.0.0') {
   const lines = [
     '+------------------------------------------------------------------+',
     '| WARNING: AUTHENTICATION IS NOT CONFIGURED                        |',
-    '| 警告：当前服务未配置访问认证                                      |',
     '|                                                                  |',
-    '| This server is listening beyond localhost. Set API_KEY before     |',
+    '| This server is listening beyond localhost. Set API_KEY before    |',
     '| exposing REST APIs, and set DASHBOARD_PASSWORD for dashboard      |',
-    '| write operations (v2.0.55: API_KEY no longer doubles as the       |',
-    '| dashboard admin password on public binds — set both).             |',
-    '| 服务正在非本机地址监听。公网/内网暴露前请配置 API_KEY，并为        |',
-    '| Dashboard 写接口配置 DASHBOARD_PASSWORD（v2.0.55 起公网 bind 上    |',
-    '| API_KEY 不再回落作为 Dashboard 密码 — 两个都必须显式配置）。      |',
+    '| write operations (v2.0.55: API_KEY no longer doubles as the      |',
+    '| dashboard admin password on public binds — set both).            |',
     '+------------------------------------------------------------------+',
   ];
   for (const line of lines) log.warn(line);

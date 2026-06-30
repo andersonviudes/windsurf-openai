@@ -465,8 +465,8 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       const after = await gitStatus();
       const changed = before.commit !== after.commit;
       // Schedule process exit so PM2 auto-restarts us. This is far simpler
-      // and port/env-agnostic compared to spawning update.sh (which hardcodes
-      // PORT=3003 default). Requires PM2 autorestart: true (the default).
+      // and port/env-agnostic compared to spawning an external updater
+      // script. Requires PM2 autorestart: true (the default).
       //
       // v2.0.85 (#127 123cek): graceful-stop the LS pool before exit so
       // SIGKILL from PM2 doesn't leave orphan language_server_linux_x64
@@ -603,8 +603,8 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       hint: available
         ? ''
         : (reason === 'public_bind'
-          ? '此实例绑定在公网/0.0.0.0 上 — "本地" Windsurf 是远端服务器上的，不是你电脑里的，所以这个功能被拒绝（设计如此）。要导入本机 Windsurf 凭证请用 localhost 部署。'
-          : '只接受来自 127.0.0.1 的请求；当前调用来自 ' + (remote || '?') + '。'),
+          ? 'This instance is bound to a public address / 0.0.0.0 — the "local" Windsurf is on the remote server, not your machine, so this feature is refused (by design). To import this machine\'s Windsurf credentials, deploy on localhost.'
+          : 'Only requests from 127.0.0.1 are accepted; this call came from ' + (remote || '?') + '.'),
     });
   }
 
@@ -893,7 +893,7 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
         primary: 'server.codeium.com/exa.seat_management_pb.SeatManagementService/GetUserStatus',
         fallback: 'server.self-serve.windsurf.com/exa.seat_management_pb.SeatManagementService/GetUserStatus',
         protocol: 'Connect-RPC',
-        note: '内置 daily/weekly% 解析；wam-bundle 用的 GetPlanStatus 是同一 service 的另一个 RPC，返回字段被 GetUserStatus.planStatus 嵌套覆盖。',
+        note: 'Built-in daily/weekly% parsing; the GetPlanStatus used by wam-bundle is a different RPC on the same service, whose returned fields are nested-overridden by GetUserStatus.planStatus.',
       },
       getCascadeModelConfigs: {
         primary: 'server.codeium.com/exa.api_server_pb.ApiServerService/GetCascadeModelConfigs',
@@ -903,7 +903,7 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       firebaseAuth: {
         primary: 'identitytoolkit.googleapis.com/v1/accounts:signInWithPassword',
         refreshUrl: 'securetoken.googleapis.com/v1/token',
-        note: 'Windsurf project Firebase API key 直连 — 同 WindsurfSwitch / wam-bundle 路径。',
+        note: 'Direct connection using the Windsurf project Firebase API key — same path as WindsurfSwitch / wam-bundle.',
       },
     });
   }

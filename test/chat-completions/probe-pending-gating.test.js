@@ -1,8 +1,8 @@
 // Regression for the misleading "probe_pending" gate (homecloud finding 2026-06-29).
 //
 // When the only callable models are unavailable, chat.js returns 403. The
-// message branches on hasUnprobedActive: a TRULY fresh account → "账号刚添加，
-// 等 tier 检测" / type=probe_pending; an already-probed account → plan/tier
+// message branches on hasUnprobedActive: a TRULY fresh account → "account just
+// added, detecting tier" / type=probe_pending; an already-probed account → plan/tier
 // "model_not_entitled". The original predicate keyed solely off
 // userStatusLastFetched, so a canary-probed account whose tier resolved to
 // 'expired' (but whose GetUserStatus came back empty) was mislabeled as

@@ -13,7 +13,7 @@ describe('PDF extraction safety limits', () => {
       Buffer.from('\nendstream\nendobj\n%%EOF', 'latin1'),
     ]);
     const result = tryExtractPdf(pdf.toString('base64'));
-    assert.equal(result.text, 'PDF 内容无法提取');
+    assert.equal(result.text, 'Unable to extract PDF content');
   });
 
   // Build an uncompressed PDF whose content stream is `streamBody`.

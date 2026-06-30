@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve, join } from 'path';
+import { homedir } from 'os';
 import { appRuntimeRoot } from './runtime-root.js';
 
 // Repo root in a source checkout, or the directory holding the binary in a
@@ -43,7 +44,12 @@ if (process.env.WINDSURFAPI_SKIP_DOTENV !== '1') {
 // See issue #67 — when the two were collapsed into one path, every
 // docker-compose upgrade orphaned the user's accounts.json under a stale
 // `replica-${HOSTNAME}` subdir.
-const sharedDataDir = process.env.DATA_DIR ? resolve(ROOT, process.env.DATA_DIR) : ROOT;
+// Default data dir: a hidden per-user folder. os.homedir() resolves to the
+// right place on every OS (Linux ~/, macOS /Users/<u>, Windows C:\Users\<u>),
+// so the same `.windsurf-api` name is cross-platform. DATA_DIR overrides it
+// (resolved against ROOT so a relative DATA_DIR still lands next to the app).
+const DEFAULT_DATA_DIR = join(homedir(), '.windsurf-api');
+const sharedDataDir = process.env.DATA_DIR ? resolve(ROOT, process.env.DATA_DIR) : DEFAULT_DATA_DIR;
 const dataDir = (() => {
   let base = sharedDataDir;
   if (process.env.REPLICA_ISOLATE === '1' && process.env.HOSTNAME) {

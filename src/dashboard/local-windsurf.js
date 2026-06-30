@@ -24,7 +24,15 @@ let discoverInFlight = null;
 
 export function getCandidateStateDbPaths() {
   const home = os.homedir();
-  const flavors = ['Windsurf', 'Windsurf - Next', 'Windsurf-Next', 'Windsurf Insiders'];
+  // Windsurf was acquired by Cognition (the Devin company) and rebranded to
+  // "Devin Desktop" (2026); newer installs keep the same VSCode-style
+  // User/globalStorage/state.vscdb layout but under a Devin-named app dir
+  // (e.g. %APPDATA%\Devin, ~/Library/Application Support/Devin, ~/.config/Devin).
+  // Keep the legacy Windsurf flavors for older installs / backward compat.
+  const flavors = [
+    'Windsurf', 'Windsurf - Next', 'Windsurf-Next', 'Windsurf Insiders',
+    'Devin', 'Devin Desktop',
+  ];
   const paths = [];
   if (process.platform === 'darwin') {
     for (const f of flavors) {
@@ -123,7 +131,7 @@ function normalizeAccount(raw, source) {
     email,
     name,
     apiServerUrl: raw.apiServerUrl || raw.account?.apiServerUrl || null,
-    label: email || name || 'Imported from Windsurf',
+    label: email || name || 'Imported from Windsurf/Devin',
     source,
   };
 }
@@ -161,8 +169,10 @@ export async function extractFromStateDb(dbPath) {
     await copyFile(dbPath, tmpCopy);
 
     db = new sqlite.DatabaseSync(tmpCopy, { readOnly: true });
+    // `devinAuth%` covers the Devin Desktop rebrand in case the auth key was
+    // renamed from windsurfAuthStatus; extra non-matching rows just get skipped.
     const rows = db.prepare(
-      `SELECT key, value FROM ItemTable WHERE key LIKE 'windsurfAuth%' OR key = ? OR key LIKE 'codeium%' LIMIT ${MAX_STATE_ROWS_PER_DB}`
+      `SELECT key, value FROM ItemTable WHERE key LIKE 'windsurfAuth%' OR key LIKE 'devinAuth%' OR key = ? OR key LIKE 'codeium%' LIMIT ${MAX_STATE_ROWS_PER_DB}`
     ).all(STATE_KEY);
     const accounts = [];
     const seen = new Set();

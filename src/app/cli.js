@@ -32,7 +32,7 @@ Commands:
   start            Start the proxy server (default if no command given)
     -p, --port <n>          listen port            (env PORT, default 3003)
     --host <addr>           bind host              (env HOST, default 0.0.0.0)
-    --data-dir <path>       state directory        (env DATA_DIR)
+    --data-dir <path>       state directory        (env DATA_DIR, default ~/.windsurf-api)
     --api-key <key>         require this API key    (env API_KEY)
     --ls-binary <path>      Language Server binary  (env LS_BINARY_PATH)
     --log-level <level>     debug|info|warn|error   (env LOG_LEVEL)
@@ -86,7 +86,8 @@ async function printVersion() {
 function printWindowsLsNote() {
   console.log('Windows detected: the Language Server binary is Linux/macOS only.');
   console.log('Options: (1) Docker (see docker-compose.yml), (2) WSL2, or');
-  console.log('(3) point LS_BINARY_PATH at a Windsurf desktop language_server binary.');
+  console.log('(3) point LS_BINARY_PATH at a Devin Desktop / Windsurf language_server binary, e.g.');
+  console.log('    C:\\Program Files\\Devin\\resources\\app\\extensions\\windsurf\\bin\\language_server_windows_x64.exe');
 }
 
 function runInstallLs(args = [], extraEnv = {}) {
@@ -335,7 +336,7 @@ async function dispatch() {
     console.log('This is the standalone windsurf-api binary — the Language Server installer is not bundled.');
     console.log('Set up the Language Server out-of-band, then point LS_BINARY_PATH at it:');
     console.log('  - Linux/macOS: run install-ls.sh from the repo, or use Docker');
-    console.log('  - Windows:     use WSL2/Docker, or a Windsurf desktop language_server binary');
+    console.log('  - Windows:     use WSL2/Docker, or a Devin Desktop / Windsurf language_server binary');
     console.log('Then: windsurf-api login --token <t>   &&   windsurf-api start');
     process.exit(0);
   }

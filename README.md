@@ -143,17 +143,6 @@ bun run scripts/build-exe.mjs --all    # all 5 targets → dist/            (npm
 
 The binary is a **launcher**: it bundles the proxy + dashboard, but **not** the Language Server (a separate, large, Linux/macOS-only binary). Set the LS up out-of-band — `install-ls.sh` from a clone, Docker, or WSL2 (Windows) — and point `LS_BINARY_PATH` at it before `windsurf-api start`. The `install` / `install-ls` subcommands are not available inside the binary (they print this guidance).
 
-### One-Click Deployment
-
-```bash
-git clone https://github.com/andersonviudes/windsurf-openai.git
-cd windsurf-openai
-bash setup.sh          # Create directories · Set permissions · Generate .env
-node src/index.js
-```
-
-Dashboard: `http://YOUR_IP:3003/dashboard`
-
 ### Docker Deployment
 
 ```bash
@@ -174,15 +163,19 @@ Default mounts:
 
 If you want a different persistence location, set `DATA_DIR` in `.env`. The Docker setup defaults it to `/data`.
 
-### One-Click Update
+### Updating
 
-To pull the latest fixes after deployment, just run one command:
+Update the way you deployed:
 
 ```bash
-cd ~/windsurf-openai && bash update.sh
-```
+# Docker
+docker compose pull && docker compose up -d
 
-`update.sh` does: `git pull` → updates the LS binary via `install-ls.sh` → stops PM2 → kills any residual process on port 3003 → restarts → health check.
+# Standalone binary — re-download the latest release asset, then chmod +x
+
+# From a clone — pull, refresh the LS binary, restart the process
+git pull && bash install-ls.sh && pm2 stop windsurf-api && pm2 start windsurf-api
+```
 
 ### Manual Installation
 
@@ -212,12 +205,22 @@ bash install-ls.sh
 # ⚠️ Can't see opus-4.7 / other new models?
 # The default download chain now uses the dwgx/windsurf-ls-release public mirror.
 # If the mirror does not cover your platform yet, copy the LS binary out of
-# the Windsurf desktop app bundle:
+# the desktop app bundle. Windsurf was acquired by Cognition (the Devin company)
+# and rebranded to "Devin Desktop" in 2026 — the binary name is unchanged
+# (language_server_<os>_<arch>), but newer installs live under a Devin path:
 #
-#   macOS:   "$HOME/Library/Application Support/Windsurf/resources/app/extensions/windsurf/bin/language_server_macos_arm"
-#   Linux:   "$HOME/.windsurf/bin/language_server_linux_x64"
-#            or /opt/Windsurf/resources/app/extensions/windsurf/bin/language_server_linux_x64
-#   Windows: %APPDATA%\Windsurf\bin\language_server_windows_x64.exe
+#   Devin Desktop (current):
+#     Windows: C:\Program Files\Devin\resources\app\extensions\windsurf\bin\language_server_windows_x64.exe
+#              (or %LOCALAPPDATA%\Programs\Devin\... for a per-user install)
+#     macOS:   /Applications/Devin.app/Contents/Resources/app/extensions/windsurf/bin/language_server_macos_arm
+#     Linux:   /opt/Devin/resources/app/extensions/windsurf/bin/language_server_linux_x64
+#   (macOS/Linux Devin sub-paths are inferred from the Windows layout — verify against your install.)
+#
+#   Legacy Windsurf installs:
+#     macOS:   "$HOME/Library/Application Support/Windsurf/resources/app/extensions/windsurf/bin/language_server_macos_arm"
+#     Linux:   "$HOME/.windsurf/bin/language_server_linux_x64"
+#              or /opt/Windsurf/resources/app/extensions/windsurf/bin/language_server_linux_x64
+#     Windows: %APPDATA%\Windsurf\bin\language_server_windows_x64.exe
 #
 #   # Install from the local desktop copy:
 #   bash install-ls.sh /path/to/language_server_linux_x64
@@ -339,7 +342,7 @@ In your client's settings for **Custom OpenAI Compatible**:
 | `PORT` | `3003` | Service port |
 | `API_KEY` | empty | API key required for requests. Leave empty to disable validation. |
 | `HOST` | `0.0.0.0` | Bind host. Set to `127.0.0.1` for localhost-only deployments. |
-| `DATA_DIR` | project root | Directory for persisted JSON state and `logs/`. Docker deployments should usually use `/data`. |
+| `DATA_DIR` | `~/.windsurf-api` | Directory for persisted JSON state and `logs/` (a hidden per-user folder; resolves correctly on Linux/macOS/Windows). Docker deployments should usually use `/data`. |
 | `CODEIUM_API_KEY` | empty | Direct API key from Windsurf (alternative to token-based auth). |
 | `CODEIUM_AUTH_TOKEN` | empty | Token from [windsurf.com/show-auth-token](https://windsurf.com/show-auth-token). |
 | `CODEIUM_EMAIL` | empty | Email for Windsurf account authentication. |
@@ -452,7 +455,7 @@ pm2 start src/index.js --name windsurf-api
 pm2 save && pm2 startup
 ```
 
-**Do not** use `pm2 restart` (it can create zombie processes). Use the one-click update script `bash update.sh`.
+**Do not** use `pm2 restart` (it can create zombie processes). Stop then start instead: `pm2 stop windsurf-api && pm2 start windsurf-api`.
 
 ## Firewall
 

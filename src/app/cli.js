@@ -15,10 +15,11 @@
 // unaffected by this file.
 import { parseArgs } from 'node:util';
 import { execSync } from 'node:child_process';
-import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { randomBytes } from 'node:crypto';
 import { isCompiled } from '../core/runtime-root.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +43,7 @@ Commands:
     --port <n>              PORT            (default 3003)
     --host <addr>           HOST
     --api-key <key>         API_KEY
+    --generate-api-key      generate a random API_KEY and print it to copy
     --data-dir <path>       DATA_DIR
     --default-model <m>     DEFAULT_MODEL   (default claude-4.5-sonnet-thinking)
     --max-tokens <n>        MAX_TOKENS      (default 8192)
@@ -65,6 +67,8 @@ Commands:
                      (reads the desktop client's state.vscdb + ~/.codeium/config.json)
     --dry-run               show what would be imported without adding
     --json                  machine-readable output
+    --api-key <key>         set the incoming API_KEY (written to .env)
+    --generate-api-key      generate a random API_KEY and print it to copy
 
   accounts [--json]  List the account pool
   status   [--json]  Pool summary
@@ -76,6 +80,45 @@ Commands:
 function fail(msg) {
   console.error(msg);
   process.exit(1);
+}
+
+// Random incoming API key for clients to authenticate with. `sk-` prefix so it
+// drops straight into OpenAI-style clients that expect that shape; hex keeps it
+// shell- and copy-safe.
+function generateApiKey() {
+  return 'sk-' + randomBytes(24).toString('hex');
+}
+
+// Resolve the API_KEY the user wants: an explicit --api-key wins, otherwise
+// --generate-api-key mints a fresh one. Returns '' when neither is given.
+function resolveApiKey(values) {
+  if (values['api-key']) return values['api-key'];
+  if (values['generate-api-key']) return generateApiKey();
+  return '';
+}
+
+// Upsert a single KEY=value into .env (preserving other lines / comments) and
+// mirror it into config.json when that file exists. Lets `import-local` set
+// API_KEY without rewriting the whole config the way `install` does.
+function upsertConfigValue(key, value) {
+  const envPath = join(ROOT, '.env');
+  const lines = existsSync(envPath) ? readFileSync(envPath, 'utf-8').split('\n') : [];
+  const idx = lines.findIndex((l) => new RegExp(`^\\s*${key}\\s*=`).test(l));
+  if (idx !== -1) {
+    lines[idx] = `${key}=${value}`;
+  } else {
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    lines.push(`${key}=${value}`);
+  }
+  writeFileSync(envPath, lines.join('\n') + '\n');
+
+  const configPath = join(ROOT, 'config.json');
+  if (existsSync(configPath)) {
+    let cfg = {};
+    try { cfg = JSON.parse(readFileSync(configPath, 'utf-8')); } catch {}
+    cfg[key] = value;
+    writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
+  }
 }
 
 async function printVersion() {
@@ -153,6 +196,7 @@ async function cmdInstall(rest) {
       port: { type: 'string' },
       host: { type: 'string' },
       'api-key': { type: 'string' },
+      'generate-api-key': { type: 'boolean' },
       'data-dir': { type: 'string' },
       'default-model': { type: 'string' },
       'max-tokens': { type: 'string' },
@@ -174,10 +218,18 @@ async function cmdInstall(rest) {
   const envPath = join(ROOT, '.env');
   const configPath = join(ROOT, 'config.json');
 
+  // --api-key sets an explicit incoming key; --generate-api-key mints one.
+  // Empty (neither flag) keeps the open-access default.
+  const apiKey = resolveApiKey(values);
+
   const settings = {
     PORT: values.port || '3003',
-    HOST: values.host || '',
-    API_KEY: values['api-key'] || '',
+    // Default to loopback so a fresh local install serves an open dashboard
+    // (no prompt) when API_KEY / DASHBOARD_PASSWORD are empty. Pass
+    // --host 0.0.0.0 to expose on the network — then set --dashboard-password,
+    // since public binds fail-closed without it.
+    HOST: values.host || '127.0.0.1',
+    API_KEY: apiKey,
     DATA_DIR: dataDir,
     DEFAULT_MODEL: values['default-model'] || 'claude-4.5-sonnet-thinking',
     MAX_TOKENS: values['max-tokens'] || '8192',
@@ -230,6 +282,11 @@ async function cmdInstall(rest) {
   } else {
     console.log('Downloading Language Server binary...');
     runInstallLs([], { LS_INSTALL_PATH: lsBinary });
+  }
+
+  if (apiKey) {
+    console.log(`\nAPI key (written to .env — clients send it as the Bearer token / api_key):\n  ${apiKey}`);
+    if (values['generate-api-key'] && !values['api-key']) console.log('  ^ generated for you — copy it now.');
   }
 
   console.log('\nDone. Next:');
@@ -288,8 +345,21 @@ async function cmdImportLocal(rest) {
     options: {
       json: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
+      'api-key': { type: 'string' },
+      'generate-api-key': { type: 'boolean' },
     },
   });
+
+  // Optionally set the incoming API_KEY while we're here — independent of what
+  // gets imported (runs even when no local accounts are found). Skipped on
+  // --dry-run. In --json mode the notice goes to stderr so stdout stays JSON.
+  const apiKey = resolveApiKey(values);
+  if (apiKey && !values['dry-run']) {
+    upsertConfigValue('API_KEY', apiKey);
+    const note = `API key set (written to .env — clients send it as the Bearer token / api_key): ${apiKey}`;
+    if (values.json) console.error(note);
+    else console.log(`${note}\n`);
+  }
 
   const { discoverWindsurfCredentials } = await import('../dashboard/local-windsurf.js');
   const result = await discoverWindsurfCredentials();

@@ -2,7 +2,7 @@
   "_comment": "Optional config file: a flat JSON fallback BELOW environment variables. Copy to config.json (gitignored) and fill in. Precedence: CLI flags > real ENV > .env > config.json > built-in defaults. Keys mirror .env.example exactly. The server refuses to start with no auth source (CODEIUM_API_KEY / CODEIUM_AUTH_TOKEN / CODEIUM_EMAIL+CODEIUM_PASSWORD / a non-empty accounts.json) unless WINDSURFAPI_ALLOW_NO_AUTH=1.",
 
   "PORT": "3003",
-  "HOST": "0.0.0.0",
+  "HOST": "127.0.0.1",
   "API_KEY": "",
   "DATA_DIR": "",
 

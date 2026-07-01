@@ -21,6 +21,10 @@ services:
       - .env
     environment:
       PORT: 3003
+      # Force all-interfaces inside the container so nginx can reach it — this
+      # overrides HOST from env_file (.env now defaults to 127.0.0.1 for local,
+      # non-Docker runs). Compose `environment` wins over `env_file`.
+      HOST: 0.0.0.0
       DATA_DIR: /data
       WINDSURFAPI_PROTO_TRACE_DIR: ${WINDSURFAPI_PROTO_TRACE_DIR:-/data/proto-trace}
       LS_BINARY_PATH: /opt/windsurf/language_server_linux_x64

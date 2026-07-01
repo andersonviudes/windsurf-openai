@@ -61,6 +61,11 @@ Commands:
     --email <e> --password <p>   log in with Windsurf credentials
     --label <name>          friendly label for the account
 
+  import-local       Import credentials from a local Windsurf/Devin install
+                     (reads the desktop client's state.vscdb + ~/.codeium/config.json)
+    --dry-run               show what would be imported without adding
+    --json                  machine-readable output
+
   accounts [--json]  List the account pool
   status   [--json]  Pool summary
 
@@ -229,6 +234,7 @@ async function cmdInstall(rest) {
 
   console.log('\nDone. Next:');
   console.log('  windsurf-api login --token <your-windsurf-token>');
+  console.log('  windsurf-api import-local   # or pull accounts from a local Windsurf/Devin install');
   console.log('  windsurf-api start');
 }
 
@@ -266,6 +272,88 @@ async function cmdLogin(rest) {
 
   saveAccountsSync();
   console.log(`Account added: id=${account.id} email=${account.email} method=${account.method} key=${maskApiKey(account.apiKey)}`);
+  process.exit(0); // initAuth schedules background timers; we're done, exit cleanly
+}
+
+// ─── import-local ────────────────────────────────────────
+// Discover credentials from a locally-installed Windsurf/Devin desktop client
+// (state.vscdb + ~/.codeium/config.json) and add them to the pool. The
+// dashboard exposes the same discovery at GET /accounts/import-local, but gates
+// it behind a loopback check because the dashboard can be bound publicly; the
+// CLI is inherently a local process, so no such network gate is needed here.
+async function cmdImportLocal(rest) {
+  const { values } = parseArgs({
+    args: rest,
+    allowPositionals: false,
+    options: {
+      json: { type: 'boolean' },
+      'dry-run': { type: 'boolean' },
+    },
+  });
+
+  const { discoverWindsurfCredentials } = await import('../dashboard/local-windsurf.js');
+  const result = await discoverWindsurfCredentials();
+
+  // Nothing found — report the checked sources so the user can debug.
+  if (result.accounts.length === 0) {
+    if (values.json) {
+      console.log(JSON.stringify({ discovered: 0, added: 0, accounts: [], ...result }, null, 2));
+    } else {
+      console.log('No local Windsurf/Devin credentials found. Checked:');
+      for (const s of result.sources) {
+        console.log(`  ${s.ok ? 'ok  ' : '--  '}${s.path}${s.reason ? ` (${s.reason})` : ''}`);
+      }
+      if (result.sqliteSupport !== 'available') {
+        console.log('Note: node:sqlite is unavailable, so the IDE state.vscdb could not be read (Node >=24 ships it).');
+      }
+    }
+    process.exit(0);
+  }
+
+  // Dry run: list discoveries without touching the pool.
+  if (values['dry-run']) {
+    if (values.json) {
+      console.log(JSON.stringify({ discovered: result.accounts.length, added: 0, accounts: result.accounts, sources: result.sources }, null, 2));
+    } else {
+      console.log(`Would import ${result.accounts.length} credential(s) (dry run):`);
+      for (const a of result.accounts) {
+        console.log(`  ${(a.apiKeyMasked || '').padEnd(20)} ${(a.email || a.name || '').padEnd(28)} ${a.source}`);
+      }
+    }
+    process.exit(0);
+  }
+
+  const {
+    initAuth, addAccountByKey, saveAccountsSync, maskApiKey, getAccountList,
+  } = await import('../account-pool/auth.js');
+  await initAuth(); // load the existing pool so we append instead of clobbering
+
+  const existingIds = new Set(getAccountList({ view: 'summary' }).map((a) => a.id));
+  const rows = [];
+  for (const a of result.accounts) {
+    const account = addAccountByKey(a.apiKey, a.label || a.email || a.name || '', a.apiServerUrl || '');
+    rows.push({ account, source: a.source, isNew: !existingIds.has(account.id) });
+  }
+  saveAccountsSync();
+
+  const addedCount = rows.filter((r) => r.isNew).length;
+  if (values.json) {
+    console.log(JSON.stringify({
+      discovered: result.accounts.length,
+      added: addedCount,
+      accounts: rows.map((r) => ({
+        id: r.account.id, email: r.account.email, status: r.account.status,
+        apiKey_masked: maskApiKey(r.account.apiKey), source: r.source, new: r.isNew,
+      })),
+    }, null, 2));
+  } else {
+    for (const r of rows) {
+      console.log(
+        `${r.account.id}  ${(r.isNew ? 'new' : 'existing').padEnd(8)} ${maskApiKey(r.account.apiKey).padEnd(20)} ${(r.account.email || '').padEnd(28)} ${r.source}`,
+      );
+    }
+    console.log(`\nImported ${addedCount} new account(s); ${result.accounts.length - addedCount} already in the pool.`);
+  }
   process.exit(0); // initAuth schedules background timers; we're done, exit cleanly
 }
 
@@ -362,6 +450,8 @@ async function dispatch() {
       return runInstallLs(rest); // pass args straight through to the shell script
     case 'login':
       return cmdLogin(rest);
+    case 'import-local':
+      return cmdImportLocal(rest);
     case 'accounts':
       return cmdAccounts(rest);
     case 'status':

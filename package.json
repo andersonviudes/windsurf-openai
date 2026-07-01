@@ -6,17 +6,23 @@
   },
   "description": "Windsurf to OpenAI + Anthropic compatible API proxy. Turns Windsurf's 100+ AI models (Claude, GPT, Gemini, DeepSeek, Grok, Qwen, Kimi, GLM, SWE) into dual-protocol API endpoints. Zero npm deps.",
   "type": "module",
-  "main": "src/app/index.js",
+  "main": "dist/app/index.js",
   "bin": {
-    "windsurf-api": "src/app/cli.js"
+    "windsurf-api": "bin/windsurf-api.js"
   },
   "files": [
-    "src/",
+    "dist/app/",
+    "dist/dashboard/",
+    "bin/",
     "install-ls.sh",
+    "LICENSE",
+    "README.md",
     ".env.example",
     "config.example.json"
   ],
   "scripts": {
+    "build": "node scripts/build-js.mjs",
+    "prepublishOnly": "npm run build",
     "start": "node src/app/index.js",
     "start:bun": "bun run src/app/index.js",
     "dev": "node --watch src/app/index.js",
@@ -48,6 +54,7 @@
   },
   "keywords": [
     "windsurf",
+    "devin",
     "codeium",
     "openai",
     "anthropic",

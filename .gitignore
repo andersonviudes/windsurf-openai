@@ -18,6 +18,7 @@ scripts/*
 !scripts/run-test-shard.mjs
 !scripts/cascade-survival-probe.mjs
 !scripts/build-exe.mjs
+!scripts/build-js.mjs
 !scripts/changelog.mjs
 src/get-token.js
 src/test-cascade.js

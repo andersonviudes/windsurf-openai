@@ -40,6 +40,10 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      # prepublishOnly bundles src/ → dist/ with `bun build` before publish.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       # Guard: the vX.Y.Z tag for this package.json version must exist, so we
       # never publish a version the Release workflow didn't actually tag.
       - name: Verify tag matches package.json version

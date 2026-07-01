@@ -14,7 +14,7 @@ Turn [Windsurf](https://windsurf.com) (formerly Codeium) cloud models into stand
 ## Quick start (CLI)
 
 ```bash
-npm install -g .                            # from a clone (or `npm link` for dev)
+npm i -g @viudes/windsurf-api               # from npm (or `npm install -g .` from a clone)
 
 windsurf-api install                        # write .env, create dirs, download the Language Server
 windsurf-api login --token <windsurf-token> # add an account (get the token below)

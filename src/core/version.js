@@ -12,7 +12,7 @@ export const VERSION = (() => {
   } catch { return '1.0.0'; }
 })();
 
-export const BRAND = 'WindsurfAPI bydwgx1337';
+export const BRAND = 'WindsurfAPI';
 
 function firstEnv(names) {
   for (const name of names) {

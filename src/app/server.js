@@ -139,7 +139,7 @@ async function route(req, res) {
     const counts = getAccountCount();
     const body = {
       status: 'ok',
-      provider: 'WindsurfAPI bydwgx1337',
+      provider: 'WindsurfAPI',
       version: VERSION_INFO.version,
       commit: VERSION_INFO.commit,
       commitMessage: VERSION_INFO.commitMessage,

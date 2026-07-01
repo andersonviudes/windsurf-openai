@@ -17,6 +17,8 @@ import indexHtml from '../dashboard/index.html' with { type: 'file' };
 import sketchHtml from '../dashboard/index-sketch.html' with { type: 'file' };
 import enJson from '../dashboard/i18n/en.json' with { type: 'file' };
 import zhJson from '../dashboard/i18n/zh-CN.json' with { type: 'file' };
+import ptJson from '../dashboard/i18n/pt.json' with { type: 'file' };
+import esJson from '../dashboard/i18n/es.json' with { type: 'file' };
 import contributors from '../dashboard/data/contributors.json' with { type: 'file' };
 
 globalThis.__WINDSURF_COMPILED__ = true;
@@ -29,6 +31,8 @@ globalThis.__WINDSURF_EMBEDDED_ASSETS__ = {
   'index-sketch.html': await load(sketchHtml),
   'i18n/en.json': await load(enJson),
   'i18n/zh-CN.json': await load(zhJson),
+  'i18n/pt.json': await load(ptJson),
+  'i18n/es.json': await load(esJson),
   'data/contributors.json': await load(contributors),
 };
 

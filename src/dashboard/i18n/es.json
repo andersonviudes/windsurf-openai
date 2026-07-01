@@ -1,0 +1,1106 @@
+{
+  "_meta": {
+    "name": "Español",
+    "code": "es"
+  },
+
+  "brand": {
+    "sub": "Panel de Control"
+  },
+
+  "nav": {
+    "group": {
+      "overview": "Resumen",
+      "account": "Cuentas",
+      "system": "Sistema",
+      "about": "Acerca de"
+    },
+    "overview": "Panel",
+    "stats": "Estadísticas",
+    "windsurf-login": "Inicio de Sesión",
+    "accounts": "Grupo de Cuentas",
+    "bans": "Chequeo de Salud",
+    "models": "Control de Modelos",
+    "proxy": "Proxy",
+    "logs": "Registros",
+    "experimental": "Experimental",
+    "credits": "Créditos"
+  },
+
+  "page": {
+    "overview": "Panel",
+    "stats": "Estadísticas",
+    "windsurf-login": "Inicio de Sesión",
+    "accounts": "Grupo de Cuentas",
+    "bans": "Chequeo de Salud",
+    "models": "Control de Modelos",
+    "proxy": "Configuración de Proxy",
+    "logs": "Registros de Ejecución",
+    "experimental": "Funciones Experimentales",
+    "credits": "Créditos"
+  },
+
+  "pageTitle": {
+    "main": "Panel de Control de WindsurfAPI"
+  },
+
+  "pageSubtitle": {
+    "overview": "Resumen del estado del sistema y las métricas clave",
+    "windsurf-login": "Inicia sesión en Windsurf con Google / GitHub / Correo para obtener la API Key",
+    "accounts": "Gestiona el grupo de cuentas, comprueba los niveles de suscripción y los modelos disponibles",
+    "models": "Configura las políticas de acceso a modelos, limita el alcance de los modelos disponibles",
+    "proxy": "Configura proxies de salida globales o por cuenta; cada proxy dedicado inicia una instancia independiente del Language Server",
+    "logs": "Recibe los registros del servidor en tiempo real mediante streaming SSE",
+    "stats": "Volumen de solicitudes, tasa de éxito, percentiles de latencia y estadísticas por cuenta/modelo",
+    "bans": "Sigue las cuentas con error y el estado anómalo",
+    "experimental": "Optimizaciones inestables; desactívalas en cualquier momento si surgen problemas",
+    "credits": "Gracias a los colaboradores que enviaron PRs / auditaron el código / reportaron problemas"
+  },
+
+  "button": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "forceOverride": "Forzar Sobrescritura y Actualizar",
+    "save": "Guardar",
+    "restart": "Reiniciar",
+    "updateAndRestart": "Actualizar y Reiniciar"
+  },
+
+  "action": {
+    "checkUpdate": "Buscar Actualización",
+    "applyUpdate": "Actualizar y Reiniciar",
+    "updateLsBinary": "Actualizar LS",
+    "restart": "Reiniciar",
+    "reset": "Restablecer",
+    "save": "Guardar",
+    "clearPool": "Vaciar Grupo",
+    "login": "Entrar",
+    "clear": "Limpiar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "refresh": "Actualizar",
+    "runNow": "Ejecutar ahora",
+    "probe": "Sondear",
+    "probeTitle": "Sondear capacidades",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "copy": "Copiar",
+    "copyTitle": "Clic para copiar",
+    "configure": "Configurar",
+    "test": "Probar",
+    "readClipboard": "Leer Portapapeles",
+    "uploadJson": "Subir JSON",
+    "clearFile": "Limpiar Archivo",
+    "batchImport": "Importar en Lote e Iniciar Sesión",
+    "paste": "Pegar",
+    "add": "Añadir",
+    "close": "Cerrar",
+    "edit": "Editar",
+    "selectAll": "Seleccionar Todo",
+    "selectNone": "Deseleccionar Todo",
+    "invert": "Invertir",
+    "showPassword": "Mostrar/Ocultar Contraseña",
+    "revealKey": "Clic para revelar y copiar la API key completa",
+    "importLocal": "Importar desde Windsurf local"
+  },
+
+  "status": {
+    "active": "Activo",
+    "disabled": "Desactivado",
+    "error": "Error",
+    "running": "En ejecución",
+    "stopped": "Detenido",
+    "success": "Éxito",
+    "failed": "Falló",
+    "pending": "Pendiente",
+    "unknown": "Desconocido",
+    "rateLimited": "Con Límite de Tasa",
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "testing": "Probando...",
+    "updateAndRestartHint": "Actualizar y reiniciar el servicio",
+    "proxySuccess": "✓ Conectado. IP de salida {{ip}} · {{latency}}ms",
+    "proxyFailed": "✗ Falló: {{error}} · {{latency}}ms",
+    "checkingUpdate": "Buscando actualizaciones...",
+    "updateAvailable": "Actualización disponible",
+    "currentVersion": "Actual:",
+    "remoteVersion": "Remoto:",
+    "upToDate": "✓ Actualizado ({{commit}}) · {{message}}",
+    "pullingRestarting": "Descargando + reiniciando...",
+    "cancelled": "Cancelado",
+    "noUpdateNeeded": "Ya está actualizado, no se necesita actualización",
+    "updateComplete": "Actualización completada {{before}} → {{after}}",
+    "restarting": "El servicio se está reiniciando en segundo plano, la página se actualizará automáticamente en ~8 segundos...",
+    "notGitRepo": "No es un repositorio git",
+    "notGitRepoHint": "Asegúrate de que el directorio .git esté presente para las actualizaciones con un clic",
+    "selfUpdateUnavailable": "La actualización con un clic no está disponible en esta implementación",
+    "selfUpdateDockerHint": "Ejecuta docker compose pull && docker compose up -d en el host para actualizar. Para habilitar las actualizaciones con un clic desde el panel en implementaciones Docker, monta /var/run/docker.sock en el servicio windsurf-api en docker-compose.yml (nota: esto otorga al contenedor privilegios de root del host; evalúa el riesgo de seguridad primero).",
+    "dockerSelfUpdateBlocked": "Actualización Docker del panel bloqueada actualmente: {{reason}} {{detail}}",
+    "dockerReady": "Autoactualización Docker lista",
+    "dockerImage": "Imagen:",
+    "dockerProject": "Proyecto Compose:",
+    "dockerUpdating": "Actualización iniciada: descargando {{image}}; el sidecar deployer recreará el contenedor en ~{{delay}}s…",
+    "dockerSidecarStarted": "Contenedor deployer {{id}} iniciado; esta página se actualizará automáticamente",
+    "workingDirDirty": "El directorio de trabajo tiene cambios locales",
+    "workingDirDirtyHint": "Los siguientes archivos tienen cambios locales:<br>{{files}}<br>Continuar los sobrescribirá con la versión remota.",
+    "notFetched": "No obtenido",
+    "fetchFailed": "Error al obtener",
+    "clickToEditTier": "Clic para editar el nivel manualmente (úsalo cuando el sondeo falle)"
+  },
+
+  "tier": {
+    "pro": "PRO",
+    "free": "FREE",
+    "expired": "Caducado",
+    "unknown": "Desconocido",
+    "expiredLabel": "Caducado"
+  },
+
+  "creditsBar": {
+    "daily": "Cuota Diaria",
+    "weekly": "Cuota Semanal",
+    "monthly": "Cuota Mensual",
+    "prompt": "Créditos de Prompt",
+    "dailyShort": "D",
+    "weeklyShort": "S",
+    "promptShort": "P",
+    "columnTitle": "Uso de Cuota",
+    "columnTooltip": "Las dos barras indican:\nD — % restante de solicitudes premium diarias\nS — % restante de solicitudes premium semanales (señal principal para cuentas Trial)\n\nMayor = más restante = más seguro\nPasa el cursor sobre cada barra para ver la hora de reinicio",
+    "dailyDetail": "Diaria {{pct}}% restante (se reinicia {{reset}})",
+    "weeklyDetail": "Semanal {{pct}}% restante (se reinicia {{reset}})",
+    "promptDetail": "Créditos de prompt {{remain}} / {{limit}} restantes ({{pct}}%)",
+    "dailyNA": "Windsurf no devolvió datos de cuota diaria",
+    "weeklyNA": "Windsurf no devolvió datos de cuota semanal",
+    "promptNA": "Sin datos de créditos de prompt para esta cuenta",
+    "noResetTime": "hora de reinicio desconocida"
+  },
+
+  "section": {
+    "banStatus": {
+      "title": "Estado de Salud"
+    },
+    "lsStatus": {
+      "title": "Language Server",
+      "desc": "Estado de la instancia del Language Server"
+    },
+    "oauthLogin": {
+      "title": "Inicio de Sesión Rápido (Recomendado)",
+      "desc": "Inicia sesión en Windsurf directamente con tu cuenta de Google o GitHub — sin contraseña"
+    },
+    "emailLogin": {
+      "title": "Inicio de Sesión con Correo y Contraseña",
+      "desc": "Solo para cuentas registradas con correo+contraseña. Para inicio de sesión de terceros, usa los botones de arriba. Admite inicio de sesión individual o importación en lote con el formato \"[proxy] correo contraseña\"."
+    },
+    "loginProxy": {
+      "title": "Proxy de Inicio de Sesión (Opcional)",
+      "desc": "Especifica un proxy para esta sesión de inicio; déjalo vacío para usar el proxy global. Cuando el proxy esté activo, las solicitudes de chat posteriores también saldrán por él."
+    },
+    "loginHistory": {
+      "title": "Historial de Inicio de Sesión",
+      "desc": "Registro local de las últimas 50 operaciones de inicio de sesión"
+    },
+    "addAccount": {
+      "title": "Añadir Cuenta",
+      "desc": "Admite los métodos API Key y Auth Token",
+      "hint": "Recomendado: usa el método Token. Visita {{link}} después de iniciar sesión, copia el Token y pégalo abajo. Funciona con todos los métodos de inicio de sesión (Correo/Google/GitHub)."
+    },
+    "accountList": {
+      "title": "Lista de Cuentas",
+      "desc": "Haz clic en el botón de sondeo para actualizar la información de capacidad de una cuenta específica"
+    },
+    "modelPolicy": {
+      "title": "Política de Acceso",
+      "desc": "Elige \"Permitir Todo\" para no restringir; \"Lista de Permitidos\" solo permite los modelos listados; \"Lista de Bloqueados\" bloquea los modelos listados"
+    },
+    "modelList": {
+      "title": "Lista de Modelos",
+      "titleAllow": "Modelos Permitidos",
+      "titleBlock": "Modelos Bloqueados",
+      "descAllow": "Solo se permiten los modelos seleccionados; los no seleccionados devuelven error 403",
+      "descBlock": "Los modelos seleccionados se bloquearán; los no seleccionados funcionan normalmente",
+      "search": "Buscar modelos...",
+      "provider": "Proveedor"
+    },
+    "globalProxy": {
+      "title": "Proxy Global",
+      "desc": "Las cuentas sin proxy dedicado usarán esta configuración"
+    },
+    "accountProxy": {
+      "title": "Proxy por Cuenta",
+      "desc": "Establece un proxy dedicado para cuentas específicas; cada proxy dedicado inicia una instancia independiente del LS"
+    },
+    "identityInjection": {
+      "title": "Inyección de Identidad del Modelo",
+      "desc": "Cuando está activado, inyecta un prompt de sistema al inicio de cada solicitud, reemplazando la identidad Windsurf integrada de Cascade; la plantilla de cada proveedor de abajo se puede personalizar y surte efecto de inmediato al guardar."
+    },
+    "cascadeReuse": {
+      "title": "Reutilización de Conversación de Cascade",
+      "desc": "Reutiliza el mismo cascade_id en conversaciones de varios turnos, enviando solo el último mensaje del usuario a Windsurf. Deja que el servidor mantenga la caché de contexto. Reduce significativamente el TTFB y el volumen de subida en aciertos de caché; vuelve automáticamente a una sesión nueva ante un fallo de caché o un cambio de cuenta/LS. Requiere que el cliente conserve el historial completo y lo añada en orden (p. ej., new-api, OpenWebUI). Nota: este interruptor solo controla la reutilización del cascade_id entre solicitudes — NO controla si se usa Cascade. Las solicitudes con emulación de herramientas (Claude Code / Cline / Cursor) omiten la reutilización automáticamente porque el contenido de cada turno cambia, independientemente de esta configuración.",
+      "enable": "Activar Reutilización de Conversación de Cascade",
+      "hint": "Activado por defecto. Cuando se desactiva, Cascade sigue usándose, pero se crea una sesión nueva en cada turno. Surte efecto de inmediato en el grupo de conversaciones actual."
+    },
+    "identityPrompt": {
+      "title": "Prompt de Identidad del Modelo",
+      "desc": "Inyecta el prompt de sistema de identidad del modelo al inicio de cada solicitud.",
+      "enable": "Activar Inyección de Identidad del Modelo",
+      "hint": "Activado por defecto; las plantillas de abajo no funcionan cuando está desactivado.",
+      "templateHint": "La plantilla de cada proveedor es editable. El marcador {{model}} se reemplazará por el nombre del modelo solicitado."
+    },
+    "systemPrompts": {
+      "title": "Prompts de Sistema",
+      "desc": "Inyección de herramientas, modo de conversación y otras plantillas de prompt integradas. Los cambios surten efecto de inmediato; haz clic en \"Restablecer\" para restaurar los valores por defecto."
+    },
+    "credentials": {
+      "title": "Credenciales",
+      "desc": "Rota la API_KEY y la contraseña del panel en tiempo de ejecución. Se guarda en runtime-config.json y se aplica de inmediato — sin reiniciar el contenedor ni recargar el .env. La siguiente solicitud debe usar el nuevo valor; se pedirá volver a iniciar sesión en la sesión actual."
+    },
+    "quietWindow": {
+      "title": "Autoactualización en ventana inactiva",
+      "desc": "Monitorea la tasa de solicitudes por minuto; si se mantiene en el umbral o por debajo durante toda la ventana, ejecuta automáticamente `docker compose pull && up -d`. 10 min de gracia en el arranque en frío; 24h de enfriamiento tras un éxito; un fallo no activa el enfriamiento. Requiere /var/run/docker.sock montado en el contenedor (el docker-compose por defecto ya lo monta).",
+      "enable": "Activar autoactualización en ventana inactiva",
+      "hint": "Desactivado por defecto. Estado actual: "
+    },
+    "stickyByUser": {
+      "title": "Vínculo de sesión persistente por usuario",
+      "desc": "Cuando está activado, el mismo usuario siempre queda vinculado a la misma cuenta upstream, independientemente del modelo. Cuando está desactivado, el vínculo usa pares (usuario, modelo) — modelos distintos pueden ir a cuentas distintas (útil cuando las cuentas tienen restricciones específicas de modelo). Requiere STICKY_SESSION_ENABLED=1.",
+      "enable": "Ignorar la dimensión del modelo",
+      "hint": "Desactivado por defecto. Cuando está activo, opus/haiku/gemini de user_a comparten un único vínculo."
+    },
+    "stickyNoFallback": {
+      "title": "Sesión persistente sin fallback",
+      "desc": "Cuando está activado, si la cuenta vinculada por la sesión persistente alcanza un límite de tasa, error o indisponibilidad de modelo, el proxy NO recurrirá a otra cuenta del grupo — el error se devuelve directamente al cliente. Esto garantiza que cada usuario consuma estrictamente solo la cuota de su cuenta vinculada. Requiere STICKY_SESSION_ENABLED=1.",
+      "enable": "Desactivar el fallback de cuenta",
+      "hint": "Desactivado por defecto. Cuando está activo, el fallo de una cuenta vinculada no consumirá la cuota de otras cuentas."
+    },
+    "droughtRestrict": {
+      "title": "Bloquear modelos premium durante la escasez",
+      "desc": "Cuando todas las cuentas activas están por debajo del 5% de la cuota semanal, las solicitudes de modelos premium (claude-opus / claude-sonnet etc.) se rechazan con un 503 limpio en lugar de gastar el último resto de cuota en un 429 del upstream. Los modelos de nivel gratuito (gemini-2.5-flash etc.) siguen pasando. Desactívalo para reenviar las solicitudes premium de todos modos y aceptar el límite de tasa del upstream.",
+      "enable": "Activar bloqueo premium en modo escasez",
+      "hint": "Activado por defecto. El estado de escasez se detecta automáticamente a partir del grupo de cuentas (GET /dashboard/api/drought para el estado en vivo)."
+    },
+    "skin": {
+      "title": "Estilo de la Interfaz",
+      "desc": "Apariencia del panel. Modern es el valor por defecto; sketch es un diseño simplificado experimental. La página se recarga tras el cambio."
+    },
+    "lsPool": {
+      "title": "Grupo del Language Server",
+      "desc": "{{count}} instancias LS · un proceso por proxy dedicado",
+      "sectionTitle": "Grupo del Language Server",
+      "sectionDesc": "Instancias dedicadas del Language Server por proxy",
+      "port": "Puerto",
+      "defaultInstance": "Instancia Predeterminada",
+      "noProxy": "Sin proxy"
+    },
+    "modelStats": {
+      "title": "Estadísticas de Uso de Modelos",
+      "desc": "Agregado por modelo: solicitudes, número de éxitos, número de errores, tasa de éxito, duración media y percentiles de latencia p50/p95"
+    },
+    "accountStats": {
+      "title": "Estadísticas por Cuenta",
+      "desc": "Volumen de solicitudes y tasa de éxito por ID de cuenta (primeros 8 caracteres)"
+    },
+    "accountHealth": {
+      "title": "Estado de Salud de la Cuenta"
+    },
+    "requestChart": {
+      "title": "Serie Temporal del Volumen de Solicitudes",
+      "subtitle": "Cambia el tipo de gráfico y el intervalo de tiempo · pasa el cursor para ver valores exactos",
+      "typeArea": "Área",
+      "typeLine": "Línea",
+      "typeBar": "Barras",
+      "typeStacked": "Apilado",
+      "metricAll": "Todas las Métricas",
+      "metricRequests": "Solicitudes",
+      "metricErrors": "Errores",
+      "metricSuccess": "Éxito",
+      "legendRequests": "Solicitudes",
+      "legendSuccess": "Éxito",
+      "legendErrors": "Errores",
+      "tooltipTime": "Hora",
+      "tooltipRequests": "Solicitudes",
+      "tooltipErrors": "Errores",
+      "tooltipSuccess": "Éxito",
+      "tooltipRate": "Tasa de Éxito"
+    },
+    "modelPie": {
+      "title": "Distribución de Solicitudes por Modelo",
+      "desc": "Proporción de solicitudes de los 8 modelos principales"
+    }
+  },
+
+  "help": {
+    "token": "Recomendado: usa el método Token. Visita {{link}} después de iniciar sesión, copia el Token y pégalo abajo. Funciona con todos los métodos de inicio de sesión (Correo/Google/GitHub).",
+    "tokenGuide": "Recomendado: usa el método Token. Visita ",
+    "tokenGuideEnd": " después de iniciar sesión, copia el Token y pégalo abajo. Funciona con todos los métodos de inicio de sesión (Correo/Google/GitHub)."
+  },
+
+  "skin": {
+    "modern": "Modern",
+    "sketch": "Sketch (Experimental)",
+    "hint": "Guardado en cookie y actualizado de inmediato"
+  },
+
+  "field": {
+    "email": {
+      "label": "Correo",
+      "placeholder": "tu-correo@ejemplo.com"
+    },
+    "password": {
+      "label": "Contraseña",
+      "placeholder": "••••••••"
+    },
+    "type": {
+      "label": "Tipo"
+    },
+    "tier": {
+      "label": "Nivel"
+    },
+    "provider": {
+      "label": "Proveedor",
+      "all": "Todos los Proveedores"
+    },
+    "searchModel": {
+      "label": "Buscar Modelo",
+      "placeholder": "Escribe el nombre del modelo para filtrar..."
+    },
+    "defaultModel": {
+      "label": "Modelo Predeterminado",
+      "placeholder": "Déjalo en blanco para rechazar solicitudes fuera de la lista",
+      "hint": "Las solicitudes de un modelo fuera de la lista usan este modelo en lugar de ser rechazadas. Déjalo en blanco para rechazar (predeterminado)."
+    },
+    "proxyUser": {
+      "placeholder": "Usuario de autenticación del proxy"
+    },
+    "proxyPass": {
+      "placeholder": "Contraseña de autenticación del proxy"
+    },
+    "searchProvider": {
+      "placeholder": "Buscar proveedores..."
+    },
+    "host": {
+      "label": "Host",
+      "placeholder": "proxy.ejemplo.com"
+    },
+    "port": {
+      "label": "Puerto",
+      "placeholder": "8080"
+    },
+    "username": {
+      "label": "Usuario",
+      "placeholder": "Opcional"
+    },
+    "passwordProxy": {
+      "label": "Contraseña",
+      "placeholder": "Opcional"
+    },
+    "key": {
+      "label": "Key / Token",
+      "placeholder": "Pega el Auth Token (de windsurf.com/show-auth-token)"
+    },
+    "label": {
+      "label": "Etiqueta",
+      "placeholder": "Opcional"
+    },
+    "proxy": {
+      "label": "Proxy",
+      "placeholder": "http://proxy:8080 o socks5://user:pass@host:port (opcional)",
+      "hint": "Déjalo vacío para usar la configuración de proxy global"
+    },
+    "batchInput": {
+      "label": "Importación en Lote",
+      "hint": "Una cuenta por línea. Admite: correo contraseña, correo----contraseña, correo|contraseña, correo,contraseña, correo:contraseña. También se admite subir un archivo JSON. Formato de proxy opcional: [proxy] correo contraseña."
+    },
+    "proxyType": {
+      "label": "Tipo"
+    },
+    "proxyHost": {
+      "label": "Host",
+      "placeholder": "Déjalo vacío = usar global"
+    },
+    "providerFilter": {
+      "label": "Proveedor"
+    },
+    "logLevel": {
+      "label": "Nivel de Registro"
+    },
+    "identitySearch": {
+      "placeholder": "Buscar proveedores..."
+    },
+    "search": {
+      "label": "Buscar",
+      "placeholder": "Buscar..."
+    },
+    "autoScroll": "Desplazamiento automático",
+    "autoAdd": "Añadir al grupo automáticamente tras iniciar sesión"
+  },
+
+  "table": {
+    "header": {
+      "time": "Hora",
+      "email": "Correo",
+      "status": "Estado",
+      "proxy": "Proxy",
+      "action": "Acción",
+      "id": "ID",
+      "label": "Etiqueta",
+      "tier": "Nivel",
+      "rpm": "RPM",
+      "credits": "Créditos",
+      "models": "Modelos Disponibles",
+      "error": "Error",
+      "lastUsed": "Último Uso",
+      "key": "Key",
+      "accountId": "ID de Cuenta",
+      "account": "Cuenta",
+      "requests": "Solicitudes",
+      "success": "Éxito",
+      "errors": "Errores",
+      "successRate": "Tasa de Éxito",
+      "avg": "Media",
+      "p50": "p50",
+      "p95": "p95",
+      "errorCount": "Número de Errores",
+      "model": "Modelo",
+      "note": "Nota"
+    },
+    "empty": {
+      "loginHistory": "Sin registros de inicio de sesión",
+      "accounts": "Aún no hay cuentas, añade una primero",
+      "accountsProxy": "Sin cuentas",
+      "modelStats": "No hay estadísticas de modelos disponibles",
+      "accountStats": "No hay estadísticas de cuentas disponibles",
+      "banList": "Sin cuentas anómalas",
+      "models": "No hay modelos coincidentes",
+      "credits": "Cargando...",
+      "accountNotFound": "Cuenta no encontrada",
+      "noValidAccounts": "No hay cuentas válidas disponibles para el enrutamiento",
+      "probeFailed": "Sondeo fallido",
+      "noRequestData": "Sin datos de solicitudes",
+      "noAccountRequestData": "Sin datos de solicitudes por cuenta",
+      "noData": "Sin datos"
+    }
+  },
+
+  "card": {
+    "activeAccounts": {
+      "title": "Cuentas Activas",
+      "subtitle": "{{total}} en total · {{error}} anómalas"
+    },
+    "totalRequests": {
+      "title": "Total de Solicitudes",
+      "subtitle": "{{rate}}% de tasa de éxito"
+    },
+    "uptime": {
+      "title": "Tiempo de Actividad",
+      "subtitle": "Iniciado el {{time}}"
+    },
+    "languageServer": {
+      "title": "Language Server",
+      "running": "En ejecución",
+      "stopped": "Detenido",
+      "subtitle": "{{count}} instancias · Puerto {{port}}"
+    },
+    "responseCache": {
+      "title": "Caché de Respuestas",
+      "subtitle": "{{hits}} acierto / {{misses}} fallo · {{size}}/{{max}} entradas"
+    },
+    "tokens": {
+      "title": "Desglose de uso de tokens",
+      "subtitle": {
+        "empty": "aún no hay datos de uso"
+      }
+    },
+    "banStats": {
+      "title": "Resumen de Salud"
+    },
+    "abnormalAccounts": {
+      "title": "Cuentas Anómalas",
+      "subtitle": "Total de {{count}} cuentas"
+    },
+    "disabled": {
+      "title": "Desactivadas",
+      "subtitle": "Desactivadas automáticamente por errores"
+    },
+    "rateLimit": {
+      "title": "Con Límite de Tasa",
+      "badge": "Con Límite de Tasa",
+      "subtitle": "Temporalmente excluida de la programación"
+    },
+    "stats": {
+      "title": "Total de Solicitudes",
+      "subtitle": "En ejecución {{time}}"
+    },
+    "success": {
+      "title": "Éxito",
+      "subtitle": "{{rate}}% de tasa de éxito"
+    },
+    "errors": {
+      "title": "Errores",
+      "subtitle": "{{rate}}% de tasa de fallo"
+    },
+    "p95Latency": {
+      "title": "Latencia p95 Media",
+      "subtitle": "{{count}} modelos"
+    },
+    "hitRate": {
+      "title": "Tasa de Acierto",
+      "subtitle": "{{hits}} acierto / {{misses}} fallo"
+    },
+    "poolSize": {
+      "title": "Tamaño del Grupo",
+      "subtitle": "Máx {{max}} · TTL {{ttl}} min"
+    },
+    "stores": {
+      "title": "Almacenamientos",
+      "subtitle": "Caducados {{expired}} · Desalojados {{evicted}}"
+    },
+    "defaultInstance": "Instancia Predeterminada",
+    "noProxy": "Sin proxy",
+    "restarts": "reinicios",
+    "custom": "Personalizado"
+  },
+
+  "login": {
+    "title": "Inicio de Sesión del Panel de Control",
+    "subtitle": "Introduce la contraseña de administrador para continuar",
+    "passwordPlaceholder": "Contraseña del Panel",
+    "lockedTitle": "Panel bloqueado",
+    "lockedDesc": "Servidor vinculado a un host público sin <code>DASHBOARD_PASSWORD</code>. Fail-closed en v2.0.55: la API_KEY ya no funciona como contraseña del panel.",
+    "lockedFix": "Solución:",
+    "lockedDocs": "Consulta",
+    "button": "Entrar",
+    "checking": "Verificando…",
+    "wrong": "Contraseña incorrecta",
+    "empty": "Contraseña obligatoria",
+    "locked": "El backend no tiene contraseña configurada — establece la variable de entorno DASHBOARD_PASSWORD o API_KEY y reinicia",
+    "networkError": "No se puede acceder al servidor"
+  },
+
+  "range": {
+    "6h": "6h",
+    "24h": "24h",
+    "72h": "72h",
+    "7d": "7d",
+    "30d": "30d",
+    "all": "Todo",
+    "custom": "Personalizado",
+    "customTitle": "Intervalo de Fechas Personalizado",
+    "customStart": "Fecha de Inicio",
+    "customEnd": "Fecha de Fin",
+    "customApply": "Aplicar",
+    "customCancel": "Cancelar",
+    "customHint": "Mostrando hasta los últimos 30 días"
+  },
+
+  "credits": {
+    "contributors": "Colaboradores Principales",
+    "history": "Contribuciones · {{count}}",
+    "contributionDetails": "Detalles",
+    "cta": {
+      "title": "¿Quieres entrar en esta lista?",
+      "desc": "Abre una issue o pull request en GitHub — correcciones de errores, nuevos modelos, mejoras de UI o hallazgos de seguridad se reconocen todos aquí.",
+      "issue": "Abrir Issue",
+      "pr": "Abrir PR"
+    }
+  },
+
+  "experimental": {
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "cascadeReuse": {
+      "title": "Activar Reutilización de Conversación de Cascade",
+      "desc": "Desactivado por defecto. Cuando se activa, surte efecto de inmediato en el grupo de conversaciones actual.",
+      "enable": "Activar Reutilización de Conversación de Cascade",
+      "hint": "Desactivado por defecto. Cuando se activa, surte efecto de inmediato en el grupo de conversaciones actual."
+    },
+    "identityPrompt": {
+      "title": "Activar Inyección de Identidad del Modelo",
+      "desc": "Activado por defecto; las plantillas de abajo no funcionan cuando está desactivado."
+    },
+    "templateHint": "La plantilla de cada proveedor es editable. El marcador {{model}} se reemplazará por el nombre del modelo solicitado (p. ej., claude-opus-4.6).",
+    "clearPool": "Vaciar Grupo de Conversaciones",
+    "refresh": "Actualizar",
+    "noMatch": "Sin coincidencias",
+    "restoreDefault": "Restaurar Valores por Defecto",
+    "save": "Guardar",
+    "default": "Predeterminado",
+    "toolReinforcement": "Guía de Formato de Llamada de Herramientas",
+    "communicationWithTools": "Comunicación con Herramientas",
+    "communicationNoTools": "Comunicación sin Herramientas",
+    "promptEmpty": "La plantilla no puede estar vacía",
+    "missingPlaceholder": "Falta el marcador {model}",
+    "missingPlaceholderDesc": "Tras guardar, el nombre del modelo del proveedor no se reemplazará en el prompt. ¿Continuar?",
+    "restored": "restaurado"
+  },
+
+  "drought": {
+    "title": "Escasez de cuota:",
+    "body": "Todas las cuentas activas están por debajo del umbral de cuota semanal — añade cuentas o espera al reinicio"
+  },
+
+  "credentials": {
+    "apiKey": "API_KEY",
+    "dashboardPassword": "Contraseña del Panel",
+    "apiKeyPlaceholder": "Nueva API_KEY (≥ 8 caracteres; déjala en blanco para borrar la anulación en tiempo de ejecución)",
+    "dashboardPwPlaceholder": "Nueva contraseña del panel (≥ 8 caracteres; déjala en blanco para borrar la anulación en tiempo de ejecución)",
+    "show": "Mostrar / Ocultar",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "set": "establecida",
+    "unset": "sin establecer",
+    "apiKeyHint": "Tras guardar, todos los clientes de chat deben usar la nueva KEY; la KEY antigua deja de funcionar de inmediato.",
+    "dashboardPwHint": "Se almacena como hash scrypt; la sesión actual se cerrará y tendrás que volver a iniciar sesión con la nueva contraseña.",
+    "bruteForceHint": "Protección contra fuerza bruta: la misma IP se bloquea durante 30 minutos tras 5 inicios de sesión fallidos en el panel (desde v2.0.56).",
+    "confirmSave": "Tras guardar, el valor antiguo deja de funcionar de inmediato. ¿Continuar?",
+    "confirmClear": "¿Borrar la anulación en tiempo de ejecución y volver al valor del .env?"
+  },
+
+  "confirm": {
+    "restartTitle": "Reiniciar Language Server",
+    "restartDesc": "Las solicitudes en curso fallarán. ¿Continuar?",
+    "updateLsTitle": "Actualizar Binario del LS",
+    "updateLsDesc": "Descarga el language_server más reciente del release de GitHub de WindsurfAPI / LS de Windsurf desktop / Exafunction y reinicia el grupo del LS. Las solicitudes en curso fallarán una vez.",
+    "updateLsButton": "Actualizar",
+    "restoreDefaultDesc": "¿restaurar al valor por defecto?",
+    "clearPoolDesc": "Todas las sesiones activas de Cascade se vaciarán. ¿Continuar?"
+  },
+
+  "modal": {
+    "blockedModels": {
+      "title": "Editar Modelos Disponibles — {{email}}",
+      "hint": "Marcado = disponible; Desmarcar = desactivado para esta cuenta",
+      "enabled": "Activado",
+      "saved": "Guardado: activados {{enabled}} / desactivados {{disabled}}",
+      "saving": "Guardando...",
+      "total": "Total"
+    },
+    "restartLS": {
+      "title": "Reiniciar Language Server",
+      "desc": "Las solicitudes en curso fallarán. ¿Continuar?"
+    },
+    "deleteAccount": {
+      "title": "Eliminar Cuenta",
+      "desc": "Esta acción no se puede deshacer. ¿Eliminar esta cuenta?"
+    },
+    "resetStats": {
+      "title": "Restablecer Estadísticas",
+      "desc": "¿Borrar todos los datos de estadísticas?"
+    },
+    "overrideTier": {
+      "title": "Establecer el Nivel de la Cuenta Manualmente",
+      "desc": "Actual: {{current}}. El proxy enruta según el cascade_allowed_models_config upstream de Windsurf (por cuenta — las cuentas gratuitas suelen incluir GLM / SWE / Kimi etc.). Cuando la prueba Pro se detecta mal (issue #8), establécelo manualmente en pro para forzar el desbloqueo de todos los modelos.",
+      "options": {
+        "pro": "Pro (forzar el desbloqueo de todos los modelos)",
+        "free": "Free (enrutar por la allowlist upstream)",
+        "unknown": "Unknown (dejar que el sistema reevalúe)"
+      }
+    },
+    "applyUpdate": {
+      "title": "Actualizar y Reiniciar",
+      "desc": "Ejecutará git pull y reiniciará PM2. El panel estará brevemente no disponible durante el reinicio (unos 5-10 segundos). ¿Continuar?"
+    },
+    "dirtyWorktree": {
+      "title": "Cambios Locales en el Directorio de Trabajo",
+      "desc": "Los siguientes archivos se han modificado pero no se han confirmado:<br><br><code>{{files}}</code><br>Continuar sobrescribirá los cambios locales con la versión remota. Para implementaciones no-git (SFTP / zip), haz clic en forzar sobrescritura.",
+      "forceUpdate": "Forzar Sobrescritura y Actualizar"
+    },
+    "configureProxy": {
+      "title": "Configurar Proxy de la Cuenta",
+      "desc": "Establece un proxy dedicado para la cuenta {{label}}"
+    }
+  },
+
+  "oauth": {
+    "tryAnotherWay": "Probar de Otra Forma",
+    "google": "Iniciar Sesión con Google",
+    "github": "Iniciar Sesión con GitHub",
+    "copyAuthToken": "Copiar Auth Token",
+    "pasteToken": "Pegar Token en la Gestión de Cuentas",
+    "inlineTokenTitle": "O pega el Auth Token directamente (recomendado para cuentas solo OAuth)",
+    "inlineTokenDesc": "Haz clic en el botón de la izquierda para abrir windsurf.com en una nueva pestaña → inicia sesión con Google/GitHub → la página muestra el Auth Token → cópialo y pégalo en el campo de la derecha → haz clic en Añadir",
+    "openWindsurfToken": "Abrir windsurf.com para el Token",
+    "tokenPlaceholder": "Pega el Auth Token...",
+    "addWithToken": "Añadir con Token",
+    "status": {
+      "loading": "Iniciando sesión con {{provider}}...",
+      "success": "¡Inicio de sesión exitoso! {{email}} añadido al grupo",
+      "codeium": "Autenticación de {{provider}} exitosa, registrando en Codeium...",
+      "firebaseError": "Error al cargar el SDK de Firebase, actualiza y vuelve a intentarlo",
+      "loggingIn": "Iniciando sesión con {{label}}...",
+      "codeiumRegistering": "Autenticación de {{label}} exitosa, registrando en Codeium...",
+      "loginSuccess": "Inicio de sesión exitoso {{email}} añadido al grupo",
+      "loginFailed": "Inicio de sesión de {{label}} fallido: {{error}}",
+      "originBlocked": "El OAuth de {{label}} está bloqueado para este origen del panel por Firebase. Usa el Auth Token de windsurf.com/show-auth-token y añádelo en la Gestión de Cuentas."
+    }
+  },
+
+  "update": {
+    "checking": "Buscando actualizaciones...",
+    "newVersion": "Nueva versión encontrada",
+    "current": "Actual",
+    "remote": "Remoto",
+    "latest": "Ya está actualizado",
+    "applying": "Descargando + reiniciando...",
+    "complete": "Actualización completada",
+    "restarting": "El servicio se está reiniciando en segundo plano, la página se actualizará automáticamente en ~8 segundos...",
+    "cancelled": "Cancelado",
+    "notGit": "No es una implementación git — actualización con un clic no disponible",
+    "notGitDesc": "Si implementaste con git clone, asegúrate de que el directorio .git esté junto con el código fuente de WindsurfAPI. Para subidas por SFTP / zip, reemplaza los archivos manualmente y reinicia con pm2.",
+    "upToDate": "Ya está actualizado, no se necesita actualización"
+  },
+
+  "proxy": {
+    "test": {
+      "button": "Probar Proxy",
+      "result": "Resultado"
+    },
+    "none": "Ninguno (usar global)",
+    "direct": "Directo",
+    "global": "Global",
+    "current": "Actual",
+    "notConfigured": "No hay proxy global configurado",
+    "placeholderSaved": "Guardado (déjalo vacío para mantener)",
+    "placeholderPassword": "Contraseña de autenticación del proxy",
+    "auth": "Autenticación"
+  },
+
+  "localImport": {
+    "scanning": "Escaneando el cliente Windsurf local…",
+    "empty": "No se encontraron credenciales Windsurf locales con sesión iniciada",
+    "scannedPaths": "Rutas escaneadas",
+    "found": "credencial(es)",
+    "foundCount": "Se encontraron {{count}} cuenta(s) local(es) — revisa y haz clic en Importar",
+    "account": "Cuenta",
+    "key": "API Key",
+    "source": "Origen",
+    "importBtn": "Importar",
+    "importSuccess": "{{email}} importado",
+    "unavailable": "Disponible solo en implementaciones localhost — el \"Windsurf local\" en un servidor remoto pertenece a la máquina de otra persona, no a la tuya."
+  },
+
+  "account": {
+    "addSuccess": "Cuenta añadida",
+    "deleteSuccess": "Cuenta eliminada",
+    "enableSuccess": "Cuenta activada",
+    "disableSuccess": "Cuenta desactivada",
+    "resetErrors": "Errores restablecidos",
+    "tierSet": "Nivel establecido en {{tier}}",
+    "editModels": "Editar modelos disponibles",
+    "probe": {
+      "doing": "Sondeando, tarda unos 10-30 segundos...",
+      "complete": "Sondeo completado: {{result}}",
+      "allDoing": "Sondeando todas las cuentas, tarda de 1 a 3 minutos según la cantidad...",
+      "allComplete": "Sondeo completado: {{summary}}",
+      "probeAllComplete": "Sondeo completado: {{summary}}",
+      "probeComplete": "Sondeo completado: {{tier}}"
+    },
+    "credits": {
+      "refreshTitle": "Actualizar créditos",
+      "refreshed": "Créditos actualizados",
+      "refreshFailed": "Error al actualizar",
+      "allRefreshed": "Créditos de todas las cuentas actualizados: {{ok}} éxito / {{fail}} fallo",
+      "refreshing": "Actualizando los créditos de todas las cuentas...",
+      "refreshingAll": "Actualizando los créditos de todas las cuentas..."
+    },
+    "ls": {
+      "restarting": "Language Server reiniciando..."
+    },
+    "detail": {
+      "toggle": "Expandir / contraer detalles",
+      "ago": "atrás",
+      "resetAt": "se reinicia",
+      "creditPerCall": "Créditos cobrados por llamada",
+      "creditUnit": "",
+      "plan": {
+        "title": "Suscripción",
+        "name": "Plan",
+        "tier": "Nivel",
+        "start": "Inicio",
+        "end": "Fin",
+        "overage": "Saldo excedente"
+      },
+      "quota": {
+        "title": "Uso de Cuota",
+        "daily": "Diaria",
+        "weekly": "Semanal",
+        "promptCredits": "Créditos de prompt",
+        "flexCredits": "Créditos flex",
+        "used": "usado",
+        "fetchedAt": "Obtenido",
+        "notApplicable": "No aplicable a este plan"
+      },
+      "models": {
+        "title": "Modelos Disponibles",
+        "available": "disponible",
+        "blocked": "bloqueado"
+      },
+      "runtime": {
+        "title": "Tiempo de Ejecución",
+        "status": "Estado",
+        "errors": "Errores",
+        "rpm": "RPM",
+        "lastUsed": "Último uso",
+        "lastProbed": "Último sondeo",
+        "creditsFetched": "Créditos actualizados",
+        "accountId": "ID de Cuenta",
+        "apiKey": "API Key",
+        "lastError": "Último error"
+      }
+    }
+  },
+
+  "batch": {
+    "pasteFirst": "Pega primero las cuentas en lote",
+    "importing": "Importando...",
+    "importingDesc": "{{count}} líneas, espera",
+    "importingFile": "Importando el archivo {{name}}",
+    "complete": "Importación en lote completada",
+    "importFailed": "Importación en lote fallida",
+    "importComplete": "Importación en lote completada: éxito {{success}} / omitidas {{skipped}} / fallo {{fail}}",
+    "success": "Éxito",
+    "skipped": "Omitida",
+    "fail": "Fallo",
+    "formatError": "Error de formato en la línea {{line}}",
+    "fileNone": "No se seleccionó ningún archivo JSON",
+    "fileLoaded": "Archivo seleccionado: {{name}}",
+    "fileReadFailed": "Error al leer el archivo: {{error}}"
+  },
+
+  "quietWindow": {
+    "status": {
+      "disabled": "desactivado",
+      "coldStart": "gracia de arranque en frío",
+      "cooldown": "enfriamiento",
+      "busy": "ocupado",
+      "eligible": "inactivo · elegible"
+    },
+    "never": "nunca",
+    "lastUpdate": "última actualización",
+    "loadFailed": "error al cargar",
+    "triggered": "activado",
+    "triggerFailed": "error al activar"
+  },
+
+  "toast": {
+    "copied": "Copiado",
+    "saved": "Guardado",
+    "cleared": "Vaciado",
+    "refresh": "Actualizar",
+    "error": "Error",
+    "loading": "Cargando...",
+    "exportOk": "{{filename}} descargado",
+    "exportFailed": "Error en la exportación",
+    "enterHostPort": "Introduce primero el host y el puerto",
+    "experimentalEnabled": "Función experimental activada",
+    "experimentalDisabled": "Función experimental desactivada",
+    "toggleFailed": "Error al alternar: {{error}}",
+    "modeUpdated": "Modo actualizado",
+    "defaultModelUpdated": "Modelo predeterminado actualizado",
+    "noTierModels": "No hay modelos disponibles para el nivel de esta cuenta",
+    "loginSuccess": "Inicio de sesión de {{label}} exitoso",
+    "loginFailed": "Inicio de sesión de {{label}} fallido: {{error}}",
+    "loginSuccessAdded": "Inicio de sesión exitoso, cuenta añadida al grupo",
+    "clipboardRead": "Portapapeles leído",
+    "clipboardEmpty": "El portapapeles está vacío",
+    "clipboardUnsupported": "El entorno actual no admite la lectura automática del portapapeles, pega manualmente",
+    "clipboardError": "Error al leer el portapapeles: {{error}}",
+    "apiKeyCopied": "API Key copiada",
+    "copyFailed": "Error al copiar, selecciona manualmente",
+    "copyFailedError": "Error al copiar: {{error}}",
+    "enterEmailPassword": "Introduce el correo y la contraseña",
+    "restarting": "Language Server reiniciando...",
+    "lsBinaryUpdating": "Actualizando el binario del LS…",
+    "lsBinaryUpdated": "Binario del LS actualizado ({{before}} → {{after}}), {{count}} instancia(s) reiniciada(s)",
+    "lsBinaryUpdatedColdPool": "Binario del LS actualizado ({{before}} → {{after}}), no hay instancias en ejecución; el nuevo binario se carga en la próxima solicitud",
+    "lsBinaryUpdatedWithErrors": "Binario del LS actualizado ({{before}} → {{after}}), {{count}} instancia(s) reiniciada(s) ({{errors}} fallaron)",
+    "lsBinaryAlreadyCurrent": "El binario del LS ya está actualizado (sha:{{sha}}), no se necesita actualización",
+    "lsBinaryUpdateFailed": "Error en la actualización del LS: {{error}}",
+    "lsBinaryUpdateRequestFailed": "Error en la solicitud de actualización del LS: {{error}}",
+    "lsBinaryUnreadable": "Binario del LS ilegible: {{error}}",
+    "lsBinaryReadFailed": "Error al leer la información del LS: {{error}}",
+    "lsBinaryStat": "{{path}} · {{sizeMb}} MB · sha256:{{sha}} · instalado hace {{age}}d",
+    "proxyConfigured": "Proxy de la cuenta configurado",
+    "proxyCleared": "Proxy de la cuenta eliminado",
+    "globalProxySaved": "Proxy global guardado",
+    "globalProxyCleared": "Proxy global eliminado",
+    "enterProxyHost": "Introduce el host del proxy",
+    "statsReset": "Estadísticas restablecidas",
+    "enterKeyOrToken": "Introduce la Key o el Token",
+    "addFailed": "Error al añadir",
+    "probe": {
+      "doing": "Sondeando, tarda unos 10-30 segundos...",
+      "probeComplete": "Sondeo completado: {{tier}}",
+      "allDoing": "Sondeando todas las cuentas, tarda de 1 a 3 minutos según la cantidad...",
+      "probeAllComplete": "Sondeo completado: {{summary}}"
+    },
+    "probeComplete": "Sondeo completado: {{tier}}",
+    "probeAllComplete": "Sondeo completado: {{summary}}",
+    "credits": {
+      "refreshed": "Créditos actualizados",
+      "refreshFailed": "Error al actualizar los créditos",
+      "refreshing": "Actualizando créditos...",
+      "allRefreshed": "Créditos de todas las cuentas actualizados: {{ok}} éxito / {{fail}} fallo"
+    }
+  },
+
+  "log": {
+    "level": {
+      "all": "Todos los Niveles",
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Warn",
+      "error": "Error"
+    },
+    "searchPlaceholder": "Buscar contenido del registro...",
+    "clearView": "Limpiar Vista",
+    "viaSSE": "mediante streaming en tiempo real por SSE",
+    "export": {
+      "all": "Todos los registros",
+      "api": "Registros de solicitudes de la API",
+      "system": "Registros de ejecución del sistema",
+      "txt": "Texto plano",
+      "btn": "Descargar registros"
+    }
+  },
+
+  "model": {
+    "mode": {
+      "all": "Permitir Todo",
+      "allowlist": "Lista de Permitidos",
+      "blocklist": "Lista de Bloqueados"
+    },
+    "provider": {
+      "all": "Todos los Proveedores",
+      "anthropic": "Anthropic",
+      "openai": "OpenAI",
+      "google": "Google",
+      "deepseek": "DeepSeek",
+      "xai": "xAI",
+      "alibaba": "Alibaba",
+      "moonshot": "Moonshot",
+      "windsurf": "Windsurf"
+    },
+    "list": {
+      "current": "Lista Actual ({{count}})",
+      "empty": "La lista está vacía"
+    }
+  },
+
+  "error": {
+    "generic": "Ocurrió un error",
+    "unknown": "Error desconocido",
+    "updateFailed": "Error en la actualización",
+    "apiError": "Error de API",
+    "loadFailed": "Error al cargar",
+    "probeFailed": "Sondeo fallido",
+    "accountNotFound": "Cuenta no encontrada",
+    "openFailed": "Error al abrir",
+    "saveFailed": "Error al guardar",
+    "deleteFailed": "Error al eliminar",
+    "networkError": "Error de red",
+    "authRequired": "Inicia sesión primero",
+    "clipboardNotSupported": "El entorno actual no admite la lectura automática del portapapeles, pega manualmente",
+    "clipboardEmpty": "El portapapeles está vacío",
+    "clipboardReadFailed": "Error al leer el portapapeles",
+    "firebaseLoadFailed": "Error al cargar el SDK de Firebase, actualiza y vuelve a intentarlo",
+    "ERR_EMAIL_PASSWORD_REQUIRED": "El correo y la contraseña son obligatorios",
+    "ERR_HOST_PORT_REQUIRED": "El host y el puerto son obligatorios",
+    "ERR_SELF_UPDATE_UNAVAILABLE": "La actualización con un clic no está disponible para esta implementación",
+    "pull-failed": "Error al descargar la imagen",
+    "deployer-pull-failed": "Error al descargar la imagen del deployer (docker:24-cli)",
+    "deployer-create-failed": "Error al crear el contenedor del deployer",
+    "deployer-create-no-id": "Contenedor del deployer creado pero no se devolvió ningún ID",
+    "deployer-start-failed": "Error al iniciar el contenedor del deployer",
+    "ERR_UNCOMMITTED_CHANGES": "El directorio de trabajo tiene cambios sin confirmar. ¿Forzar sobrescritura?",
+    "ERR_ACCOUNTS_REQUIRED": "El array de cuentas es obligatorio",
+    "ERR_TEXT_REQUIRED": "El campo de texto es obligatorio",
+    "ERR_NO_VALID_LINES": "No se encontraron líneas válidas",
+    "ERR_FORMAT_INVALID": "Formato inválido. Esperado: [proxy] correo contraseña",
+    "ERR_UNSUPPORTED_IMPORT_ITEM": "El elemento no se pudo reconocer como correo/contraseña, token o API key",
+    "ERR_JSON_INVALID": "Formato JSON inválido",
+    "ERR_JSON_FILE_REQUIRED": "Elige un archivo .json",
+    "ERR_IDTOKEN_REQUIRED": "El ID token es obligatorio",
+    "ERR_PROXY_PRIVATE_IP": "El proxy no puede apuntar a una dirección privada/local",
+    "ERR_PROXY_FORMAT_INVALID": "Formato de proxy inválido. Esperado: protocol://[user:pass@]host:port",
+    "ERR_PROXY_HTTP_ERROR": "El proxy devolvió un error HTTP",
+    "ERR_PROXY_PRIVATE_HOST": "No se permite un host privado/local",
+    "ERR_CONNECTION_FAILED": "Error de conexión",
+    "ERR_TIMEOUT": "Tiempo agotado (10s)",
+    "ERR_TLS_TUNNEL_ERROR": "Túnel TLS establecido pero devolvió contenido anómalo",
+    "ERR_TLS_FAILED": "Error de TLS",
+    "ERR_LOGIN_FAILED": "Error al iniciar sesión",
+    "ERR_EMAIL_NOT_FOUND": "Correo no registrado para inicio de sesión con contraseña. Si te registraste con OAuth de Google/GitHub, usa los botones de OAuth o visita windsurf.com/show-auth-token para copiar el Auth Token",
+    "ERR_INVALID_PASSWORD": "Contraseña inválida",
+    "ERR_INVALID_CREDENTIALS": "Correo o contraseña inválidos",
+    "ERR_NO_PASSWORD_SET": "No hay contraseña establecida para esta cuenta. Usa OAuth de Google/GitHub o visita windsurf.com/show-auth-token para copiar el Auth Token",
+    "ERR_USER_DISABLED": "La cuenta ha sido desactivada",
+    "ERR_TOO_MANY_ATTEMPTS": "Demasiados intentos. Vuelve a intentarlo más tarde",
+    "ERR_INVALID_EMAIL": "Formato de correo inválido",
+    "ERR_CODEIUM_REGISTER_FAILED": "Error en el registro de Codeium",
+    "ERR_AUTH1_TOKEN_MISSING": "La respuesta Auth1 no incluye token",
+    "ERR_POSTAUTH_FAILED": "Error en el PostAuth de Windsurf",
+    "ERR_TOKEN_FETCH_FAILED": "Error al obtener el token de autenticación de un solo uso",
+    "ERR_FIREBASE_TOKEN_MISSING": "La respuesta de Firebase no incluye idToken",
+    "ERR_LOCAL_IMPORT_LOOPBACK_ONLY": "La importación local solo está disponible desde 127.0.0.1 — abre el panel en la propia máquina host, no mediante un dominio público",
+    "ERR_LOCAL_IMPORT_FAILED": "Error al escanear las credenciales del Windsurf local"
+  },
+
+  "footer": {
+    "version": "Versión",
+    "langToggle": "Cambiar idioma",
+    "langToggleToEn": "Switch to English",
+    "langToggleToZh": "切换到中文"
+  },
+
+  "placeholder": {
+    "noProxy": "Sin proxy"
+  },
+
+  "loginResult": {
+    "success": "✓ Inicio de Sesión Exitoso",
+    "apiKeyGenerated": "API Key generada{{autoAdd}}",
+    "fail": "✗ Inicio de Sesión Fallido",
+    "batchComplete": "Importación en Lote Completada",
+    "batchDesc": "Total de {{total}} cuentas, {{success}} éxito, {{fail}} fallo{{autoAdd}}",
+    "tryOther": "Probar de Otra Forma",
+    "oauthHint": "Si se usó OAuth de Google/GitHub para el registro, el inicio de sesión con contraseña no funcionará. Usa los botones de Google/GitHub de arriba, o visita {{link}} para copiar el Auth Token y añádelo manualmente en la página del Grupo de Cuentas.",
+    "fields": {
+      "email": "Correo",
+      "name": "Nombre",
+      "apiKey": "API Key",
+      "accountId": "ID de Cuenta"
+    },
+    "successTitle": "Inicio de Sesión Exitoso",
+    "addedToPool": "y añadido al grupo de cuentas"
+  },
+
+  "timeRange": {
+    "minutesAgo": "hace {{count}}min",
+    "hoursAgo": "hace {{count}}h",
+    "daysAgo": "hace {{count}}d"
+  },
+
+  "time": {
+    "day": "d",
+    "hour": "h",
+    "minute": "min",
+    "second": "s"
+  },
+
+  "prompt": {
+    "editor": {
+      "reset": "Restablecer",
+      "search": "Buscar proveedores...",
+      "templateHint": "El marcador {{model}} se reemplazará por el nombre del modelo solicitado."
+    }
+  },
+
+  "ls": {
+    "defaultInstance": "Instancia Predeterminada",
+    "noProxy": "Sin proxy",
+    "port": "Puerto",
+    "pid": "PID",
+    "restartCount": "Reinicios"
+  }
+}

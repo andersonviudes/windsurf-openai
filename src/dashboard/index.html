@@ -2562,6 +2562,9 @@ const I18n = {
   locale: 'en',
   bundles: {},
   loaded: false,
+  // Ordered list of selectable locales; the toggle button cycles through them.
+  // The display name for each shows once its bundle is loaded (_meta.name).
+  langs: ['en', 'zh-CN', 'pt', 'es'],
 
   // Load locale bundle from server
   async loadLocale(lang) {
@@ -2658,14 +2661,14 @@ const I18n = {
     });
 
     // Update HTML lang attribute
-    document.documentElement.lang = this.locale === 'zh' || this.locale === 'zh-CN' ? 'zh-CN' : 'en';
+    const code = this.locale === 'zh' ? 'zh-CN' : this.locale;
+    document.documentElement.lang = code;
 
-    // Update language indicator
-    const zhMode = this.locale === 'zh' || this.locale === 'zh-CN';
+    // Update language indicator with the active locale's own name (_meta.name)
     const indicator = document.getElementById('lang-indicator');
-    if (indicator) indicator.textContent = zhMode ? '中文' : 'English';
+    if (indicator) indicator.textContent = this.bundles[code]?._meta?.name || code;
     const toggleBtn = document.getElementById('lang-toggle-btn');
-    if (toggleBtn) toggleBtn.title = I18n.t(zhMode ? 'footer.langToggleToEn' : 'footer.langToggleToZh');
+    if (toggleBtn) toggleBtn.title = I18n.t('footer.langToggle');
   },
 
   async setLocale(lang) {
@@ -2818,7 +2821,9 @@ const App = {
   },
 
   async toggleLang() {
-    const newLang = I18n.locale === 'zh' || I18n.locale === 'zh-CN' ? 'en' : 'zh';
+    const cur = I18n.locale === 'zh' ? 'zh-CN' : I18n.locale;
+    const idx = I18n.langs.indexOf(cur);
+    const newLang = I18n.langs[(idx + 1) % I18n.langs.length];
     await I18n.setLocale(newLang);
     this.lang = newLang;
     this.refreshActivePanelI18n();

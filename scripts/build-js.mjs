@@ -61,6 +61,8 @@ const ASSETS = [
   'index-sketch.html',
   'i18n/en.json',
   'i18n/zh-CN.json',
+  'i18n/pt.json',
+  'i18n/es.json',
   'data/contributors.json',
 ];
 for (const rel of ASSETS) {

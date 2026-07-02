@@ -242,6 +242,29 @@ function cascadeHistoryBudget(modelUid) {
   return normal;
 }
 
+// A resumed cascade already holds every turn up to and including its own
+// newest assistant reply — that's exactly the turn the conversation pool
+// verified at checkout (fpBefore on a primary hit, lastAssistantDigest on
+// the caller fallback). The unseen tail is everything AFTER that assistant
+// turn, and it can span several messages: /v1/messages splits one client
+// turn into a synthetic <tool_result> user message per result plus a
+// trailing user text message (system reminders). Sending only
+// convo[length-1] silently dropped the tool results, so the model — mid
+// tool call — received reminder chatter with no question and answered
+// "I don't see an actual question or task in your latest message".
+// Falls back to just the newest message when there is no assistant turn
+// or when nothing follows it (pre-fix behaviour).
+export function resumeTailMessages(convo) {
+  if (!Array.isArray(convo) || convo.length === 0) return [];
+  for (let i = convo.length - 1; i >= 0; i--) {
+    if (convo[i]?.role === 'assistant') {
+      const tail = convo.slice(i + 1);
+      return tail.length ? tail : convo.slice(-1);
+    }
+  }
+  return convo.slice(-1);
+}
+
 const CASCADE_TIMEOUTS = {
   // Absolute upper bound. The real "is the cascade alive" gate is
   // warmStallMs (45s of no progress → exit). 180s used to be the cap and
@@ -732,10 +755,14 @@ export class WindsurfClient {
       // full input; fresh path may truncate large histories.
       let historyCoverage = { droppedTurnCount: 0, firstIncludedTurnIndex: 0, totalTurns: convo.length };
       if (isResume || convo.length <= 1) {
-        const last = convo[convo.length - 1];
-        const extracted = await extractImages(last?.content ?? '');
-        text = extracted.text;
-        images = extracted.images;
+        const tail = isResume ? resumeTailMessages(convo) : convo.slice(-1);
+        const texts = [];
+        for (const m of tail) {
+          const extracted = await extractImages(m?.content ?? '');
+          if (extracted.text) texts.push(extracted.text);
+          if (extracted.images.length) images.push(...extracted.images);
+        }
+        text = texts.join('\n\n');
         if (!isResume && sysText) text = sysText + '\n\n' + text;
       } else {
         const maxHistoryBytes = cascadeHistoryBudget(modelUid);

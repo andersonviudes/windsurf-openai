@@ -40,6 +40,15 @@ const KEY_VERSION = 2;
 // a recent cascade for the same model, we fall back to it. This makes
 // reuse robust against fingerprint drift (system-prompt changes, tool-list
 // reordering, etc.) within a single Claude Code / Cline session.
+//
+// The fallback bypasses history matching entirely, so it additionally
+// requires continuation evidence: the request must echo the assistant turn
+// we produced last turn (`lastAssistantDigest`). Without that check, a
+// brand-new chat (fingerprint=null) or an unrelated conversation from the
+// same client would resume the previous chat's cascade and get answered
+// inside the wrong context — and since the resume path only sends the
+// newest message upstream, the model would see a contextless fragment
+// ("I don't see a specific question or task in your message").
 const REUSE_BY_CALLER = process.env.CASCADE_REUSE_BY_CALLER === '1';
 
 const _pool = new Map();
@@ -47,7 +56,7 @@ const _pool = new Map();
 // populated when REUSE_BY_CALLER is on.
 const _callerLatest = new Map();
 
-const stats = { hits: 0, misses: 0, stores: 0, evictions: 0, expired: 0, callerFallbackHits: 0 };
+const stats = { hits: 0, misses: 0, stores: 0, evictions: 0, expired: 0, callerFallbackHits: 0, callerFallbackRejects: 0 };
 
 function sha256(s) {
   return createHash('sha256').update(s).digest('hex');
@@ -491,6 +500,25 @@ export function fingerprintAfter(messages, modelKey = '', callerKey = '', opts =
   }));
 }
 
+/**
+ * Digest of the newest assistant turn, projected through the same
+ * canonicalization as the fingerprints (whitespace-folded text +
+ * tool_calls; reasoning / ids dropped). Used as continuation evidence for
+ * the caller-based fallback: a genuine next turn of a stored conversation
+ * must echo the assistant reply we generated last turn, so its digest
+ * matches the one stored at checkin. Returns '' when there is no
+ * assistant turn at all (brand-new chat).
+ */
+export function lastAssistantDigest(messages) {
+  if (!Array.isArray(messages)) return '';
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === 'assistant') {
+      return shortDigest(stableStringify(projectMessage(messages[i])), 32);
+    }
+  }
+  return '';
+}
+
 function effectiveTtl(entry) {
   const hint = Number(entry?.ttlHintMs);
   return Number.isFinite(hint) && hint > 0 ? hint : POOL_TTL_MS;
@@ -530,12 +558,17 @@ function _pruneCallerIndex() {
  * v2.0.25 added optional `expected` for atomic owner verification at the
  * pool boundary (MED-3). Pass `{ apiKey, lsPort, lsGeneration }` and a
  * mismatch returns null + counts a miss without leaking the entry.
+ *
+ * `evidence` is the caller's `lastAssistantDigest(messages)` — required
+ * for the caller-based fallback (CASCADE_REUSE_BY_CALLER) to prove the
+ * request actually continues the stored conversation. The primary
+ * fingerprint path ignores it (the fingerprint already covers history).
  */
-export function checkout(fingerprint, callerKey = '', expected = null, modelKey = '') {
+export function checkout(fingerprint, callerKey = '', expected = null, modelKey = '', evidence = '') {
   if (!fingerprint) {
     // No fingerprint — try caller-based fallback before giving up.
     if (REUSE_BY_CALLER && callerKey && modelKey) {
-      const fallback = _callerFallbackCheckout(callerKey, modelKey, expected);
+      const fallback = _callerFallbackCheckout(callerKey, modelKey, expected, evidence);
       if (fallback) return fallback;
     }
     stats.misses++;
@@ -545,7 +578,7 @@ export function checkout(fingerprint, callerKey = '', expected = null, modelKey 
   if (!entry) {
     // Fingerprint miss — try caller-based fallback.
     if (REUSE_BY_CALLER && callerKey && modelKey) {
-      const fallback = _callerFallbackCheckout(callerKey, modelKey, expected);
+      const fallback = _callerFallbackCheckout(callerKey, modelKey, expected, evidence);
       if (fallback) return fallback;
     }
     stats.misses++;
@@ -592,8 +625,9 @@ export function checkout(fingerprint, callerKey = '', expected = null, modelKey 
 
 // Caller-based fallback: look up the latest fingerprint for this
 // callerKey+model pair and check out that entry. Same validation as
-// the primary path.
-function _callerFallbackCheckout(callerKey, modelKey, expected) {
+// the primary path, plus continuation evidence — see the
+// REUSE_BY_CALLER comment at the top of this file.
+function _callerFallbackCheckout(callerKey, modelKey, expected, evidence = '') {
   const ck = `${callerKey}\0${modelKey}`;
   const fp = _callerLatest.get(ck);
   if (!fp) return null;
@@ -604,6 +638,15 @@ function _callerFallbackCheckout(callerKey, modelKey, expected) {
     _pool.delete(fp);
     _callerLatest.delete(ck);
     stats.expired++;
+    return null;
+  }
+  // Continuation evidence: the request must echo the assistant turn this
+  // entry produced last turn. A new chat has no assistant history
+  // (evidence '') and an unrelated conversation digests differently —
+  // both must miss here instead of resuming another chat's cascade.
+  // Entries without a stored digest (pre-upgrade) are never fallback-able.
+  if (!evidence || !entry.lastAssistantDigest || entry.lastAssistantDigest !== evidence) {
+    stats.callerFallbackRejects++;
     return null;
   }
   if (expected) {
@@ -668,6 +711,7 @@ export function checkin(fingerprint, entry, callerKey = '', ttlHintMs) {
       stepOffset: Number.isFinite(entry.stepOffset) ? entry.stepOffset : 0,
       generatorOffset: Number.isFinite(entry.generatorOffset) ? entry.generatorOffset : 0,
       historyCoverage: entry.historyCoverage || null,
+      lastAssistantDigest: typeof entry.lastAssistantDigest === 'string' ? entry.lastAssistantDigest : '',
       createdAt: entry.createdAt || now,
       lastAccess: now,
       ...(Number.isFinite(resolvedHint) && resolvedHint > 0 ? { ttlHintMs: resolvedHint } : {}),

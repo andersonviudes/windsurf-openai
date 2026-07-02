@@ -21,6 +21,7 @@ import { checkMessageRateLimit } from '../language-server/windsurf-api.js';
 import { getEffectiveProxy } from '../core/proxy-config.js';
 import {
   fingerprintBefore, fingerprintAfter, checkout as poolCheckout, checkin as poolCheckin,
+  lastAssistantDigest,
 } from '../conversation-cache/conversation-pool.js';
 import {
   normalizeMessagesForCascade, ToolCallStreamParser, parseToolCallsFromText, stripToolMarkupFromText,
@@ -2219,7 +2220,11 @@ async function _handleChatCompletionsInner(body, context = {}) {
   const strictReuse = shouldUseStrictCascadeReuse({ emulateTools, modelKey: routingModelKey });
   const fpOpts = buildReuseOpts({ tools: effectiveTools, toolChoice: tool_choice, toolPreamble, preambleTier: preambleTier || null, emulateTools, route: body.__route || 'chat' });
   const fpBefore = reuseEnabled ? fingerprintBefore(messages, routingModelKey, callerKey, fpOpts) : null;
-  let reuseEntry = reuseEnabled ? poolCheckout(fpBefore, callerKey, null, routingModelKey) : null;
+  // Continuation evidence for the caller-based fallback: digest of the
+  // newest assistant turn the client echoed back. A brand-new chat has
+  // none, so it can never resume another conversation's cascade.
+  const fpEvidence = reuseEnabled ? lastAssistantDigest(messages) : '';
+  let reuseEntry = reuseEnabled ? poolCheckout(fpBefore, callerKey, null, routingModelKey, fpEvidence) : null;
   let checkedOutReuseEntry = reuseEntry;
   // v2.0.71 (#116 zhangzhang-bit follow-up): structured reuse log so
   // operators can see whether multi-turn cascades are actually reusing
@@ -2948,6 +2953,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
         stepOffset: Number.isFinite(cascadeMeta.stepOffset) ? cascadeMeta.stepOffset : poolCtx.reuseEntry?.stepOffset,
         generatorOffset: Number.isFinite(cascadeMeta.generatorOffset) ? cascadeMeta.generatorOffset : poolCtx.reuseEntry?.generatorOffset,
         historyCoverage: cascadeMeta.historyCoverage || poolCtx.reuseEntry?.historyCoverage || null,
+        lastAssistantDigest: lastAssistantDigest(turnComplete),
         createdAt: poolCtx.reuseEntry?.createdAt,
       }, poolCtx.callerKey || '', ttlHint === undefined ? 0 : ttlHint);
 
@@ -3270,7 +3276,9 @@ function streamResponse(id, created, model, modelKey, provider, messages, cascad
         && (isExperimentalEnabled('cascadeConversationReuse') || shouldForceCascadeReuse({ emulateTools, modelKey }));
       const strictReuse = shouldUseStrictCascadeReuse({ emulateTools, modelKey });
       const fpBefore = reuseEnabled ? fingerprintBefore(messages, modelKey, callerKey, fpOpts) : null;
-      let reuseEntry = reuseEnabled ? poolCheckout(fpBefore, callerKey, null, modelKey) : null;
+      // Same continuation evidence as the non-stream path.
+      const fpEvidence = reuseEnabled ? lastAssistantDigest(messages) : '';
+      let reuseEntry = reuseEnabled ? poolCheckout(fpBefore, callerKey, null, modelKey, fpEvidence) : null;
       let checkedOutReuseEntry = reuseEntry;
       // v2.0.25 HIGH-2: same dead-entry signal as the non-stream path.
       let reuseEntryDead = false;
@@ -3843,6 +3851,7 @@ function streamResponse(id, created, model, modelKey, provider, messages, cascad
                 stepOffset: Number.isFinite(cascadeResult.stepOffset) ? cascadeResult.stepOffset : reuseEntry?.stepOffset,
                 generatorOffset: Number.isFinite(cascadeResult.generatorOffset) ? cascadeResult.generatorOffset : reuseEntry?.generatorOffset,
                 historyCoverage: cascadeResult.historyCoverage || reuseEntry?.historyCoverage || null,
+                lastAssistantDigest: lastAssistantDigest(turnComplete),
                 createdAt: reuseEntry?.createdAt,
               }, callerKey, ttlHint === undefined ? 0 : ttlHint);
 
